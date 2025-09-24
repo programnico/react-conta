@@ -170,8 +170,8 @@ const authSlice = createSlice({
       .addCase(loginAsync.fulfilled, (state, action) => {
         state.isLoading = false
         state.error = null
-        state.verificationToken = action.payload.tk
-        state.changePasswordRequired = action.payload.change_password
+        state.verificationToken = action.payload.tk || null
+        state.changePasswordRequired = action.payload.change_password || false
         state.requiresVerification = true
         state.loginStep = 'verification'
       })
@@ -190,7 +190,21 @@ const authSlice = createSlice({
       .addCase(verifyCodeAsync.fulfilled, (state, action) => {
         state.isLoading = false
         state.error = null
-        state.isAuthenticated = action.payload.success
+
+        // Verificar diferentes formas de determinar el éxito
+        const payload = action.payload as any // Temporary type assertion for debugging
+        const isSuccess =
+          payload.success === true ||
+          payload.success === 'true' ||
+          payload.success === 1 ||
+          (payload.access_token && payload.access_token.length > 0) ||
+          (payload.token && payload.token.length > 0) ||
+          // Si no hay campo success pero hay tokens, asumir éxito
+          (!('success' in payload) && (payload.access_token || payload.token))
+
+        console.log('🎯 Determined isSuccess:', isSuccess)
+
+        state.isAuthenticated = Boolean(isSuccess)
         state.requiresVerification = false
         state.verificationToken = null
         state.loginStep = 'completed'
@@ -206,6 +220,12 @@ const authSlice = createSlice({
         if (action.payload.refresh_token) {
           state.refreshToken = action.payload.refresh_token
         }
+
+        console.log('✅ Final auth state:', {
+          isAuthenticated: state.isAuthenticated,
+          loginStep: state.loginStep,
+          accessToken: !!state.accessToken
+        })
       })
       .addCase(verifyCodeAsync.rejected, (state, action) => {
         state.isLoading = false

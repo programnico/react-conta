@@ -37,10 +37,6 @@ export const apiClient = async <T = any>(endpoint: string, config: RequestConfig
   const apiUrl = getApiUrl()
   const url = `${apiUrl}${endpoint}`
 
-  console.log('🌍 API Base URL:', apiUrl)
-  console.log('🔗 Endpoint:', endpoint)
-  console.log('🎯 Final URL:', url)
-
   const { method = 'GET', headers = {}, body, token, useFormData = false, includeCredentials = false } = config
 
   // Default headers with security best practices

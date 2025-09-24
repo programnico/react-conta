@@ -26,7 +26,8 @@ export interface LoginResponse {
 
 export interface VerificationRequest {
   code: string
-  tk: string
+  tk?: string
+  token?: string
 }
 
 export interface VerificationResponse {
