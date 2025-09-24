@@ -3,6 +3,7 @@ import { configureStore, combineReducers } from '@reduxjs/toolkit'
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist'
 import storage from './storage'
 import authReducer from './slices/authSlice'
+import unitMergeReducer from './slices/unitMergeSlice'
 
 // Persist configuration
 const persistConfig = {
@@ -14,7 +15,8 @@ const persistConfig = {
 
 // Root reducer
 const rootReducer = combineReducers({
-  auth: authReducer
+  auth: authReducer,
+  unitMerge: unitMergeReducer
   // Add other reducers here as your app grows
 })
 

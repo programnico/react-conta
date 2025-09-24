@@ -14,7 +14,6 @@ const LoginPage = () => {
   // Si ya está autenticado, redirigir al dashboard
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('✅ User already authenticated, redirecting to dashboard...')
       router.replace('/dashboard')
     }
   }, [isAuthenticated, router])

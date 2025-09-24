@@ -12,11 +12,9 @@ const HomePage = () => {
   useEffect(() => {
     if (!isLoading) {
       if (!isAuthenticated) {
-        console.log('❌ User not authenticated, redirecting to login...')
         router.replace('/login')
       } else {
         // Si está autenticado, mostrar el dashboard aquí mismo
-        console.log('✅ User authenticated, showing dashboard...')
       }
     }
   }, [isAuthenticated, isLoading, router])

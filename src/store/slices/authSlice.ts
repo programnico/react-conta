@@ -3,7 +3,14 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 import AuthService from '@/services/authService'
 import { ApiErrorClass } from '@/utils/api'
-import type { AuthState, LoginCredentials, VerificationRequest, UserData, ApiError } from '@/types/auth'
+import type {
+  AuthState,
+  LoginCredentials,
+  VerificationRequest,
+  VerificationResponse,
+  UserData,
+  ApiError
+} from '@/types/auth'
 
 // Initial state
 const initialState: AuthState = {
@@ -192,17 +199,13 @@ const authSlice = createSlice({
         state.error = null
 
         // Verificar diferentes formas de determinar el éxito
-        const payload = action.payload as any // Temporary type assertion for debugging
+        const payload = action.payload as VerificationResponse
         const isSuccess =
           payload.success === true ||
-          payload.success === 'true' ||
-          payload.success === 1 ||
           (payload.access_token && payload.access_token.length > 0) ||
           (payload.token && payload.token.length > 0) ||
           // Si no hay campo success pero hay tokens, asumir éxito
           (!('success' in payload) && (payload.access_token || payload.token))
-
-        console.log('🎯 Determined isSuccess:', isSuccess)
 
         state.isAuthenticated = Boolean(isSuccess)
         state.requiresVerification = false
@@ -220,12 +223,6 @@ const authSlice = createSlice({
         if (action.payload.refresh_token) {
           state.refreshToken = action.payload.refresh_token
         }
-
-        console.log('✅ Final auth state:', {
-          isAuthenticated: state.isAuthenticated,
-          loginStep: state.loginStep,
-          accessToken: !!state.accessToken
-        })
       })
       .addCase(verifyCodeAsync.rejected, (state, action) => {
         state.isLoading = false

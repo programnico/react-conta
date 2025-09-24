@@ -1,5 +1,5 @@
 // services/authService.ts
-import { api, ApiErrorClass } from '@/utils/api'
+import { api, ApiErrorClass, API_CONFIG } from '@/utils/api'
 import type { LoginCredentials, LoginResponse, VerificationRequest, VerificationResponse } from '@/types/auth'
 
 export class AuthService {
@@ -8,24 +8,12 @@ export class AuthService {
    */
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      console.log('🔐 Starting login process for:', credentials.identity)
-      console.log('🔗 About to call API with endpoint: /authentication')
-      console.log('📦 Data to send:', {
-        identity: credentials.identity.trim(),
-        password: '***hidden***'
-      })
-
-      const response = await api.postFormData<LoginResponse>('/authentication', {
+      const response = await api.postFormData<LoginResponse>(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
         identity: credentials.identity.trim(),
         password: credentials.password
       })
 
-      console.log('🔐 Login response received:', response)
-      console.log('🔍 Response type:', typeof response)
-      console.log('🔍 Response keys:', response ? Object.keys(response) : 'no keys')
-
       // Validate response structure - check for different possible structures
-      console.log('🧪 Validating response structure...')
       if (!response) {
         console.error('🔴 No response received from server')
         throw new ApiErrorClass('No response from server', 500, 'NO_RESPONSE')
@@ -52,7 +40,6 @@ export class AuthService {
         user: response.user || null
       }
 
-      console.log('✅ Login successful, normalized response:', normalizedResponse)
       return normalizedResponse
     } catch (error) {
       console.error('🔴 Login error:', error)
@@ -68,7 +55,7 @@ export class AuthService {
    */
   static async verifyCode(verificationData: VerificationRequest): Promise<VerificationResponse> {
     try {
-      const response = await api.postFormData<VerificationResponse>('/verify', {
+      const response = await api.postFormData<VerificationResponse>(API_CONFIG.ENDPOINTS.AUTH.VERIFY, {
         code: verificationData.code.trim(),
         tk: verificationData.tk
       })
@@ -115,7 +102,6 @@ export class AuthService {
       await api.post('/auth/logout', {}, accessToken)
     } catch (error) {
       // Logout errors are not critical, we'll proceed anyway
-      console.warn('Logout request failed:', error)
     }
   }
 

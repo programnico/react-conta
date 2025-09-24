@@ -1,13 +1,34 @@
 // utils/api.ts
 import type { ApiError } from '@/types/auth'
 
-// Get API URLs from environment
-export const getApiUrl = () => {
-  return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/auth'
+// Global API configuration
+export const API_CONFIG = {
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api',
+  ENDPOINTS: {
+    AUTH: {
+      BASE: '/auth',
+      LOGIN: '/auth/authentication',
+      VERIFY: '/auth/verify'
+    },
+    PEI: {
+      UNIT_MERGE: '/pei/unit-merge'
+    }
+  }
 }
 
+// Get base API URL
+export const getApiUrl = () => {
+  return API_CONFIG.BASE_URL
+}
+
+// Get full endpoint URL
+export const getEndpointUrl = (endpoint: string) => {
+  return `${API_CONFIG.BASE_URL}${endpoint}`
+}
+
+// Legacy support
 export const getServerApiUrl = () => {
-  return process.env.API_URL || 'http://127.0.0.1:8000/api/auth'
+  return API_CONFIG.BASE_URL
 }
 
 // Custom error class for API errors
@@ -80,11 +101,7 @@ export const apiClient = async <T = any>(endpoint: string, config: RequestConfig
   }
 
   try {
-    console.log('🔄 API Request:', { url, method, body: useFormData ? 'FormData' : body })
-
     const response = await fetch(url, requestConfig)
-
-    console.log('📡 API Response Status:', response.status, response.statusText)
 
     // Handle different response statuses
     if (!response.ok) {
@@ -93,7 +110,6 @@ export const apiClient = async <T = any>(endpoint: string, config: RequestConfig
 
       try {
         const errorData = await response.json()
-        console.log('❌ API Error Data:', errorData)
         errorMessage = errorData.message || errorData.error || errorMessage
         errorCode = errorData.code || 'API_ERROR'
       } catch {
@@ -107,12 +123,10 @@ export const apiClient = async <T = any>(endpoint: string, config: RequestConfig
     // Handle empty responses
     const contentType = response.headers.get('content-type')
     if (!contentType?.includes('application/json')) {
-      console.log('⚠️ Non-JSON response, returning empty object')
       return {} as T
     }
 
     const rawData = await response.json()
-    console.log('✅ API Raw Response:', rawData)
 
     // Handle responses that might be wrapped in a 'data' property
     // or responses that come directly as the data
@@ -120,17 +134,13 @@ export const apiClient = async <T = any>(endpoint: string, config: RequestConfig
 
     // Si la respuesta tiene una propiedad 'data', usar esa
     if (rawData && typeof rawData === 'object' && 'data' in rawData) {
-      console.log('📦 Response has data wrapper, extracting...')
       processedData = rawData.data
     }
 
     // Si la respuesta tiene status y data separados (formato común de APIs)
     if (rawData && typeof rawData === 'object' && 'status' in rawData && 'data' in rawData) {
-      console.log('📦 Response has status/data structure, extracting data...')
       processedData = rawData.data
     }
-
-    console.log('🎯 Final processed data:', processedData)
     return processedData
   } catch (error) {
     // Re-throw API errors

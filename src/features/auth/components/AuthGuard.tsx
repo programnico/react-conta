@@ -42,7 +42,6 @@ const AuthGuard = ({
       await new Promise(resolve => setTimeout(resolve, 100))
 
       if (!isLoading && !isAuthenticated) {
-        console.log('🔒 User not authenticated, redirecting to login...')
         router.replace(redirectTo)
         return
       }

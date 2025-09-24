@@ -34,7 +34,8 @@ const iconMap: Record<string, React.ReactNode> = {
   'ri-user-line': <PeopleIcon />,
   'ri-settings-line': <SettingsIcon />,
   'ri-file-text-line': <ArticleIcon />,
-  'ri-layout-card-line': <ViewModuleIcon />
+  'ri-layout-card-line': <ViewModuleIcon />,
+  'ri-merge-cells-horizontal': <ViewModuleIcon />
 }
 
 const NavigationMenu = () => {

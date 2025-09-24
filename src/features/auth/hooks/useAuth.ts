@@ -19,10 +19,8 @@ export const useAuth = () => {
       const result = await dispatch(loginAsync(credentials)).unwrap()
 
       if (result.requiresVerification) {
-        console.log('✅ Login successful, verification required')
         return { success: true, requiresVerification: true }
       } else {
-        console.log('✅ Login successful, redirecting to dashboard')
         router.replace(ROUTES.PROTECTED.DASHBOARD)
         return { success: true, requiresVerification: false }
       }
@@ -39,7 +37,6 @@ export const useAuth = () => {
   const verifyCode = async (verificationData: VerificationRequest) => {
     try {
       const result = await dispatch(verifyCodeAsync(verificationData)).unwrap()
-      console.log('✅ Verification successful, redirecting to dashboard')
       router.replace(ROUTES.PROTECTED.DASHBOARD)
       return { success: true }
     } catch (error: any) {
@@ -73,7 +70,7 @@ export const useAuth = () => {
         // This assumes you have a clearError action in your auth slice
         dispatch({ type: 'auth/clearError' })
       } catch (error) {
-        console.log('No clearError action available')
+        // Action not available
       }
     }
   }
