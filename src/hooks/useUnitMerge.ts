@@ -1,5 +1,5 @@
 // hooks/useUnitMerge.ts
-import { useAppDispatch, useAppSelector } from './redux'
+import { useAppDispatch, useAppSelector } from '@/shared/hooks/redux'
 import {
   fetchUnitMerges,
   createUnitMerge,

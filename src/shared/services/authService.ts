@@ -1,6 +1,6 @@
 // services/authService.ts
-import { api, ApiErrorClass, API_CONFIG } from '@/utils/api'
-import type { LoginCredentials, LoginResponse, VerificationRequest, VerificationResponse } from '@/types/auth'
+import { apiClient, ApiError as ApiErrorClass, API_CONFIG } from '@/shared/services/apiClient'
+import type { LoginCredentials, LoginResponse, VerificationRequest, VerificationResponse } from '@/shared/types/auth'
 
 export class AuthService {
   /**
@@ -8,7 +8,7 @@ export class AuthService {
    */
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      const response = await api.postFormData<LoginResponse>(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
+      const response = await apiClient.postFormData<LoginResponse>(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
         identity: credentials.identity.trim(),
         password: credentials.password
       })
@@ -16,12 +16,12 @@ export class AuthService {
       // Validate response structure - check for different possible structures
       if (!response) {
         console.error('🔴 No response received from server')
-        throw new ApiErrorClass('No response from server', 500, 'NO_RESPONSE')
+        throw new ApiErrorClass(500, 'No response from server', 'NO_RESPONSE')
       }
 
       if (typeof response !== 'object') {
         console.error('🔴 Response is not an object:', typeof response)
-        throw new ApiErrorClass('Invalid response format', 500, 'INVALID_FORMAT')
+        throw new ApiErrorClass(500, 'Invalid response format', 'INVALID_FORMAT')
       }
 
       // Check if response has token in different possible properties
@@ -29,7 +29,7 @@ export class AuthService {
 
       if (!token) {
         console.error('🔴 Invalid response structure:', response)
-        throw new ApiErrorClass('Invalid server response: missing token', 500, 'INVALID_RESPONSE')
+        throw new ApiErrorClass(500, 'Invalid server response: missing token', 'INVALID_RESPONSE')
       }
 
       // Normalize response to expected format
@@ -46,7 +46,7 @@ export class AuthService {
       if (error instanceof ApiErrorClass) {
         throw error
       }
-      throw new ApiErrorClass('Login failed', 500, 'LOGIN_ERROR')
+      throw new ApiErrorClass(500, 'Login failed', 'LOGIN_ERROR')
     }
   }
 
@@ -55,7 +55,7 @@ export class AuthService {
    */
   static async verifyCode(verificationData: VerificationRequest): Promise<VerificationResponse> {
     try {
-      const response = await api.postFormData<VerificationResponse>(API_CONFIG.ENDPOINTS.AUTH.VERIFY, {
+      const response = await apiClient.postFormData<VerificationResponse>(API_CONFIG.ENDPOINTS.AUTH.VERIFY, {
         code: verificationData.code.trim(),
         tk: verificationData.tk
       })
@@ -65,7 +65,7 @@ export class AuthService {
       if (error instanceof ApiErrorClass) {
         throw error
       }
-      throw new ApiErrorClass('Verification failed', 500, 'VERIFICATION_ERROR')
+      throw new ApiErrorClass(500, 'Verification failed', 'VERIFICATION_ERROR')
     }
   }
 
@@ -77,12 +77,12 @@ export class AuthService {
     refresh_token?: string
   }> {
     try {
-      const response = await api.post('/auth/refresh', {
+      const response = await apiClient.post('/auth/refresh', {
         refresh_token: refreshToken
       })
 
       if (!response.access_token) {
-        throw new ApiErrorClass('Invalid refresh response', 401, 'INVALID_REFRESH')
+        throw new ApiErrorClass(401, 'Invalid refresh response', 'INVALID_REFRESH')
       }
 
       return response
@@ -90,7 +90,7 @@ export class AuthService {
       if (error instanceof ApiErrorClass) {
         throw error
       }
-      throw new ApiErrorClass('Token refresh failed', 401, 'REFRESH_ERROR')
+      throw new ApiErrorClass(401, 'Token refresh failed', 'REFRESH_ERROR')
     }
   }
 

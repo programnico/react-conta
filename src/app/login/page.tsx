@@ -3,7 +3,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAppSelector } from '@/hooks/redux'
+import { useAppSelector } from '@/shared/hooks/redux'
 import LoginForm from '@/components/auth/LoginForm'
 import { Box } from '@mui/material'
 

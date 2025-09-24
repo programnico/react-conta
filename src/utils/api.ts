@@ -1,5 +1,5 @@
 // utils/api.ts
-import type { ApiError } from '@/types/auth'
+import type { ApiError } from '@/shared/types/api'
 
 // Global API configuration
 export const API_CONFIG = {

@@ -2,7 +2,11 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit'
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist'
 import storage from './storage'
-import authReducer from './slices/authSlice'
+
+// Shared/Global reducers
+import authReducer from '@/shared/store/authSlice'
+
+// Feature reducers
 import unitMergeReducer from './slices/unitMergeSlice'
 
 // Persist configuration
@@ -13,11 +17,17 @@ const persistConfig = {
   whitelist: ['auth'] // Only persist auth state
 }
 
-// Root reducer
+// Root reducer with modular structure
 const rootReducer = combineReducers({
+  // 🌟 Global state (always available)
   auth: authReducer,
+
+  // 🏢 Feature modules (loaded as needed)
   unitMerge: unitMergeReducer
-  // Add other reducers here as your app grows
+  // Future modules:
+  // purchase: purchaseReducer,
+  // accounting: accountingReducer,
+  // administration: administrationReducer
 })
 
 // Persisted reducer

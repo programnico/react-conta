@@ -17,7 +17,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Box from '@mui/material/Box'
 
 // Hook Imports
-import { useAppDispatch, useAppSelector } from '@/hooks/redux'
+import { useAppDispatch, useAppSelector } from '@/shared/hooks/redux'
 
 // Store Imports
 import {
@@ -31,10 +31,10 @@ import {
   selectLoginStep,
   selectRequiresVerification,
   selectIsAuthenticated
-} from '@/store/slices/authSlice'
+} from '@/shared/store/authSlice'
 
 // Type Imports
-import type { LoginCredentials, VerificationRequest } from '@/types/auth'
+import type { LoginCredentials, VerificationRequest } from '@/shared/types/auth'
 
 const LoginForm = () => {
   // Redux hooks

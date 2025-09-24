@@ -1,11 +1,11 @@
 // features/auth/hooks/useAuth.ts
 import { useRouter } from 'next/navigation'
-import { useAppDispatch, useAppSelector } from '@/hooks/redux'
+import { useAppDispatch, useAppSelector } from '@/shared/hooks/redux'
 import { usePermissions } from '@/providers/PermissionsProvider'
-import { loginAsync, logoutAsync, verifyCodeAsync } from '@/store/slices/authSlice'
+import { loginAsync, logoutAsync, verifyCodeAsync } from '@/shared/store/authSlice'
 import { ROUTES } from '@/config/routes'
 import { Permission } from '@/config/permissions'
-import type { LoginCredentials, VerificationRequest } from '@/types/auth'
+import type { LoginCredentials, VerificationRequest } from '@/shared/types/auth'
 
 export const useAuth = () => {
   const dispatch = useAppDispatch()

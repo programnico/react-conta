@@ -18,8 +18,8 @@ import {
   selectLoginStep,
   selectRequiresVerification,
   selectChangePasswordRequired
-} from '@/store/slices/authSlice'
-import type { LoginCredentials, VerificationRequest } from '@/types/auth'
+} from '@/shared/store/authSlice'
+import type { LoginCredentials, VerificationRequest } from '@/shared/types/auth'
 
 export const useAuth = () => {
   const dispatch = useAppDispatch()

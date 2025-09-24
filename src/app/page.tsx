@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAppSelector } from '@/hooks/redux'
+import { useAppSelector } from '@/shared/hooks/redux'
 import { Box, CircularProgress, Typography } from '@mui/material'
 
 const HomePage = () => {

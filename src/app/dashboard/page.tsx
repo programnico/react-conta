@@ -6,8 +6,8 @@ import { Card, CardContent, Typography, Box, Chip, Button } from '@mui/material'
 
 // Components Imports
 import AuthGuard from '@/components/auth/AuthGuard'
-import { useAppSelector, useAppDispatch } from '@/hooks/redux'
-import { logoutAsync } from '@/store/slices/authSlice'
+import { useAppSelector, useAppDispatch } from '@/shared/hooks/redux'
+import { logoutAsync } from '@/shared/store/authSlice'
 
 // Views Imports
 import Award from '@views/dashboard/Award'

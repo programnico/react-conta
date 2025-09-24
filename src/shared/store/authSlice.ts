@@ -1,8 +1,8 @@
 // store/slices/authSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import AuthService from '@/services/authService'
-import { ApiErrorClass } from '@/utils/api'
+import AuthService from '@/shared/services/authService'
+import { ApiError as ApiErrorClass } from '@/shared/services/apiClient'
 import type {
   AuthState,
   LoginCredentials,
@@ -10,7 +10,7 @@ import type {
   VerificationResponse,
   UserData,
   ApiError
-} from '@/types/auth'
+} from '@/shared/types/auth'
 
 // Initial state
 const initialState: AuthState = {

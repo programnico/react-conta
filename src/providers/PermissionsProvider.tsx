@@ -2,7 +2,8 @@
 'use client'
 
 import React, { createContext, useContext, useMemo } from 'react'
-import { useAppSelector } from '@/hooks/redux'
+import { useRouter } from 'next/navigation'
+import { useAppSelector } from '@/shared/hooks/redux'
 import { Permission, ROLES } from '@/config/permissions'
 
 interface PermissionsContextType {

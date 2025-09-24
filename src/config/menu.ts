@@ -74,13 +74,32 @@ export const MENU_CONFIG: MenuItem[] = [
     ]
   },
   {
-    id: 'unit-merge',
-    label: 'Unit Merge',
-    path: '/dashboard/unit-merge',
-    icon: 'ri-merge-cells-horizontal',
-    permissions: [PERMISSIONS.USERS.VIEW], // Usando permiso existente, puedes crear uno específico después
+    id: 'general',
+    label: 'General',
+    path: '/general',
+    icon: 'ri-settings-line',
+    permissions: [PERMISSIONS.USERS.VIEW],
     showInMenu: true,
-    order: 4
+    order: 4,
+    children: [
+      {
+        id: 'catalogs',
+        label: 'Catálogos',
+        path: '/general/catalogs',
+        permissions: [PERMISSIONS.USERS.VIEW],
+        showInMenu: true,
+        children: [
+          {
+            id: 'unit-merge',
+            label: 'Unit Merge',
+            path: '/general/catalogs/unit-merge',
+            icon: 'ri-merge-cells-horizontal',
+            permissions: [PERMISSIONS.USERS.VIEW],
+            showInMenu: true
+          }
+        ]
+      }
+    ]
   },
   {
     id: 'cards',

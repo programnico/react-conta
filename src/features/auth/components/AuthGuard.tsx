@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAppSelector } from '@/hooks/redux'
+import { useAppSelector } from '@/shared/hooks/redux'
 import { usePermissions, ProtectedRoute } from '@/providers/PermissionsProvider'
 import { Permission } from '@/config/permissions'
 import { ROUTES } from '@/config/routes'
