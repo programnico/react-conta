@@ -1,7 +1,7 @@
 // store/slices/authSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import AuthService from '@/shared/services/authService'
+import { AuthService } from '@/shared/services/authService'
 import { ApiError as ApiErrorClass } from '@/shared/services/apiClient'
 import type {
   AuthState,

@@ -2,12 +2,17 @@
 import { apiClient, ApiError as ApiErrorClass, API_CONFIG } from '@/shared/services/apiClient'
 import type { LoginCredentials, LoginResponse, VerificationRequest, VerificationResponse } from '@/shared/types/auth'
 
-export class AuthService {
+class AuthService {
   /**
    * Authenticate user with credentials
    */
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
+      console.log('🔐 Login attempt with:')
+      console.log('- Base URL:', API_CONFIG.BASE_URL)
+      console.log('- Endpoint:', API_CONFIG.ENDPOINTS.AUTH.LOGIN)
+      console.log('- Full URL will be:', API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.AUTH.LOGIN)
+
       const response = await apiClient.postFormData<LoginResponse>(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
         identity: credentials.identity.trim(),
         password: credentials.password
@@ -77,7 +82,10 @@ export class AuthService {
     refresh_token?: string
   }> {
     try {
-      const response = await apiClient.post('/auth/refresh', {
+      const response = await apiClient.post<{
+        access_token: string
+        refresh_token?: string
+      }>('/auth/refresh', {
         refresh_token: refreshToken
       })
 
@@ -99,7 +107,7 @@ export class AuthService {
    */
   static async logout(accessToken: string): Promise<void> {
     try {
-      await api.post('/auth/logout', {}, accessToken)
+      await apiClient.post('/auth/logout', {})
     } catch (error) {
       // Logout errors are not critical, we'll proceed anyway
     }
@@ -110,13 +118,13 @@ export class AuthService {
    */
   static async getUserProfile(accessToken: string): Promise<any> {
     try {
-      const response = await api.get('/auth/profile', accessToken)
+      const response = await apiClient.get('/auth/profile')
       return response
     } catch (error) {
       if (error instanceof ApiErrorClass) {
         throw error
       }
-      throw new ApiErrorClass('Failed to fetch user profile', 500, 'PROFILE_ERROR')
+      throw new ApiErrorClass(500, 'Failed to fetch user profile', 'PROFILE_ERROR')
     }
   }
 
@@ -125,19 +133,15 @@ export class AuthService {
    */
   static async changePassword(currentPassword: string, newPassword: string, accessToken: string): Promise<void> {
     try {
-      await api.post(
-        '/auth/change-password',
-        {
-          current_password: currentPassword,
-          new_password: newPassword
-        },
-        accessToken
-      )
+      await apiClient.post('/auth/change-password', {
+        current_password: currentPassword,
+        new_password: newPassword
+      })
     } catch (error) {
       if (error instanceof ApiErrorClass) {
         throw error
       }
-      throw new ApiErrorClass('Password change failed', 500, 'PASSWORD_CHANGE_ERROR')
+      throw new ApiErrorClass(500, 'Password change failed', 'PASSWORD_CHANGE_ERROR')
     }
   }
 
@@ -146,14 +150,14 @@ export class AuthService {
    */
   static async requestPasswordReset(identity: string): Promise<void> {
     try {
-      await api.post('/auth/password-reset-request', {
+      await apiClient.post('/auth/password-reset-request', {
         identity: identity.trim()
       })
     } catch (error) {
       if (error instanceof ApiErrorClass) {
         throw error
       }
-      throw new ApiErrorClass('Password reset request failed', 500, 'PASSWORD_RESET_ERROR')
+      throw new ApiErrorClass(500, 'Password reset request failed', 'PASSWORD_RESET_ERROR')
     }
   }
 
@@ -162,7 +166,7 @@ export class AuthService {
    */
   static async validateToken(token: string): Promise<boolean> {
     try {
-      await api.get('/auth/validate', token)
+      await apiClient.get('/auth/validate')
       return true
     } catch (error) {
       return false
@@ -170,4 +174,8 @@ export class AuthService {
   }
 }
 
+// Named export for consistency with new architecture
+export { AuthService }
+
+// Default export for backward compatibility
 export default AuthService

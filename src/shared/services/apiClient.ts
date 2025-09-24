@@ -26,22 +26,37 @@ export class ApiClient {
   constructor(config: { baseURL: string; timeout?: number }) {
     this.baseURL = config.baseURL
     this.defaultHeaders = {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
     }
   }
 
   private buildURL(endpoint: string, params?: Record<string, any>): string {
-    const url = new URL(endpoint, this.baseURL)
+    // Handle relative base URLs (like /api/proxy) for development proxy
+    let fullURL: string
 
+    if (this.baseURL.startsWith('/')) {
+      // Relative URL - just concatenate
+      fullURL = `${this.baseURL}${endpoint}`
+    } else {
+      // Absolute URL - use URL constructor
+      const url = new URL(endpoint, this.baseURL)
+      fullURL = url.toString()
+    }
+
+    // Add query parameters if any
     if (params) {
+      const url = new URL(fullURL, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           url.searchParams.append(key, String(value))
         }
       })
+      return url.toString()
     }
 
-    return url.toString()
+    return fullURL
   }
 
   private async getToken(): Promise<string | null> {
@@ -86,7 +101,9 @@ export class ApiClient {
       const response = await fetch(url, {
         method,
         headers: requestHeaders,
-        body
+        body,
+        mode: 'cors',
+        credentials: 'include'
       })
 
       if (!response.ok) {
@@ -155,8 +172,13 @@ export class ApiClient {
 }
 
 // API Configuration
+const isDevelopment = process.env.NODE_ENV === 'development'
+const isClient = typeof window !== 'undefined'
+
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  // Use proxy in development to avoid CORS, direct URL in production
+  BASE_URL: isDevelopment && isClient ? '/api' : process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
+
   ENDPOINTS: {
     AUTH: {
       LOGIN: '/auth/login',
@@ -166,7 +188,8 @@ export const API_CONFIG = {
       PROFILE: '/auth/profile'
     },
     PEI: {
-      UNIT_MERGE: '/pei/unit-merge'
+      UNIT_MERGE: '/pei/unit-merge',
+      PERIOD_NAME: '/pei/period-name'
     }
   }
 }
