@@ -1,6 +1,9 @@
 // components/layout/vertical/DynamicVerticalMenu.tsx
 'use client'
 
+// React Imports
+import { useMemo, useCallback } from 'react'
+
 // MUI Imports
 import { useTheme } from '@mui/material/styles'
 
@@ -15,6 +18,10 @@ import { Menu, SubMenu, MenuItem, MenuSection } from '@menu/vertical-menu'
 
 // Hook Imports
 import useVerticalNav from '@menu/hooks/useVerticalNav'
+import { usePermissions } from '@/providers/PermissionsProvider'
+
+// Config Imports
+import { MENU_CONFIG, filterMenuByPermissions } from '@/config/menu'
 
 // Styled Component Imports
 import StyledVerticalNavExpandIcon from '@menu/styles/vertical/StyledVerticalNavExpandIcon'
@@ -38,8 +45,35 @@ const DynamicVerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPe
   // Hooks
   const theme = useTheme()
   const { isBreakpointReached, transitionDuration } = useVerticalNav()
+  const { permissions } = usePermissions()
+
+  // Get filtered menu based on user permissions
+  const filteredMenu = useMemo(() => {
+    return filterMenuByPermissions(MENU_CONFIG, permissions)
+  }, [permissions])
 
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
+
+  // Render menu items recursively with useCallback to prevent infinite loops
+  const renderMenuItems = useCallback((menuItems: typeof filteredMenu) => {
+    return menuItems.map(item => {
+      if (item.children && item.children.length > 0) {
+        return (
+          <SubMenu key={item.id} label={item.label} icon={item.icon ? <i className={item.icon} /> : undefined}>
+            {renderMenuItems(item.children)}
+          </SubMenu>
+        )
+      }
+
+      return (
+        <MenuItem key={item.id} href={item.path} icon={item.icon ? <i className={item.icon} /> : undefined}>
+          {item.label}
+        </MenuItem>
+      )
+    })
+  }, [])
+
+  const menuItems = useMemo(() => renderMenuItems(filteredMenu), [filteredMenu, renderMenuItems])
 
   return (
     // eslint-disable-next-line lines-around-comment
@@ -62,51 +96,8 @@ const DynamicVerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPe
         renderExpandedMenuItemIcon={{ icon: <i className='ri-circle-line' /> }}
         menuSectionStyles={menuSectionStyles(theme)}
       >
-        {/* Dashboard Section */}
-        <MenuItem href='/dashboard' icon={<i className='ri-dashboard-line' />}>
-          Dashboard
-        </MenuItem>
-
-        {/* Unit Merge - Nueva funcionalidad */}
-        <MenuItem href='/dashboard/unit-merge' icon={<i className='ri-merge-cells-horizontal' />}>
-          Unit Merge
-        </MenuItem>
-
-        {/* Apps & Pages Section */}
-        <MenuSection label='Apps & Pages'>
-          <MenuItem href='/account-settings' icon={<i className='ri-user-settings-line' />}>
-            Account Settings
-          </MenuItem>
-          <SubMenu label='Auth Pages' icon={<i className='ri-shield-keyhole-line' />}>
-            <MenuItem href='/login' target='_blank'>
-              Login
-            </MenuItem>
-            <MenuItem href='/register' target='_blank'>
-              Register
-            </MenuItem>
-            <MenuItem href='/forgot-password' target='_blank'>
-              Forgot Password
-            </MenuItem>
-          </SubMenu>
-          <SubMenu label='Miscellaneous' icon={<i className='ri-question-line' />}>
-            <MenuItem href='/error' target='_blank'>
-              Error
-            </MenuItem>
-            <MenuItem href='/under-maintenance' target='_blank'>
-              Under Maintenance
-            </MenuItem>
-          </SubMenu>
-          <MenuItem href='/card-basic' icon={<i className='ri-bar-chart-box-line' />}>
-            Cards
-          </MenuItem>
-        </MenuSection>
-
-        {/* Forms & Tables Section */}
-        <MenuSection label='Forms & Tables'>
-          <MenuItem href='/form-layouts' icon={<i className='ri-layout-4-line' />}>
-            Form Layouts
-          </MenuItem>
-        </MenuSection>
+        {/* Render dynamic menu items based on permissions */}
+        {menuItems}
       </Menu>
     </ScrollWrapper>
   )

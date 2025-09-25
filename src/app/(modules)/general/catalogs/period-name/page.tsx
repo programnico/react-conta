@@ -54,9 +54,7 @@ const PeriodNamePage = () => {
     activeItems,
     getByName
   } = usePeriodName({
-    autoLoad: true,
-    onSuccess: message => console.log('Success:', message),
-    onError: error => console.error('Error:', error)
+    autoLoad: false // Disable auto-loading to prevent conflicts
   })
 
   // Modal states
@@ -69,12 +67,17 @@ const PeriodNamePage = () => {
   })
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Load data on component mount
+  useEffect(() => {
+    loadItems()
+  }, []) // Empty dependency array - run only once on mount
+
   // Clear error when dialog closes
   useEffect(() => {
     if (!isDialogOpen) {
       clearPeriodNameError()
     }
-  }, [isDialogOpen, clearPeriodNameError])
+  }, [isDialogOpen]) // Removed clearPeriodNameError dependency to prevent potential loops
 
   // Filter items based on search
   const filteredItems = items.filter(

@@ -1,6 +1,6 @@
 // features/general/period-name/services/periodNameService.ts
 import { BaseCrudService } from '@/shared/services/BaseCrudService'
-import { API_CONFIG } from '@/shared/services/apiClient'
+import { API_CONFIG, apiClient } from '@/shared/services/apiClient'
 import type { PeriodName, CreatePeriodNameRequest, UpdatePeriodNameRequest } from '../types'
 
 class PeriodNameService extends BaseCrudService<PeriodName, CreatePeriodNameRequest, UpdatePeriodNameRequest> {
@@ -14,7 +14,7 @@ class PeriodNameService extends BaseCrudService<PeriodName, CreatePeriodNameRequ
 
   /**
    * Custom update method to handle the specific API format
-   * This API expects FormData with 'id' included in the body
+   * This API expects FormData with 'id' included in the body using POST method
    */
   async update(id: string | number, data: UpdatePeriodNameRequest): Promise<PeriodName> {
     // For this specific API, include the ID in the data
@@ -23,8 +23,12 @@ class PeriodNameService extends BaseCrudService<PeriodName, CreatePeriodNameRequ
       id: Number(id)
     }
 
-    // Use the base endpoint (not with /:id) as the API expects ID in body
-    return super.create(updateData as any) // Reuse create method as API uses same endpoint
+    // Use FormData for this API - this API uses POST for updates with ID in body
+    if (this.options.useFormData) {
+      return apiClient.postFormData<PeriodName>(this.endpoint, updateData)
+    }
+
+    return apiClient.post<PeriodName>(this.endpoint, updateData)
   }
 
   /**

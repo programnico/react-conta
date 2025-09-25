@@ -1,6 +1,6 @@
 // features/general/unit-merge/services/unitMergeService.ts
 import { BaseCrudService } from '@/shared/services/BaseCrudService'
-import { API_CONFIG } from '@/shared/services/apiClient'
+import { API_CONFIG, apiClient } from '@/shared/services/apiClient'
 import type { UnitMerge, CreateUnitMergeRequest, UpdateUnitMergeRequest } from '../types'
 
 class UnitMergeService extends BaseCrudService<UnitMerge, CreateUnitMergeRequest, UpdateUnitMergeRequest> {
@@ -14,7 +14,7 @@ class UnitMergeService extends BaseCrudService<UnitMerge, CreateUnitMergeRequest
 
   /**
    * Custom update method to handle the specific API format
-   * This API expects FormData with 'id' included in the body
+   * This API expects FormData with 'id' included in the body using POST method
    */
   async update(id: string | number, data: UpdateUnitMergeRequest): Promise<UnitMerge> {
     // For this specific API, include the ID in the data
@@ -23,8 +23,12 @@ class UnitMergeService extends BaseCrudService<UnitMerge, CreateUnitMergeRequest
       id: Number(id)
     }
 
-    // Use the base endpoint (not with /:id) as the API expects ID in body
-    return super.create(updateData as any) // Reuse create method as API uses same endpoint
+    // Use FormData for this API - this API uses POST for updates with ID in body
+    if (this.options.useFormData) {
+      return apiClient.postFormData<UnitMerge>(this.endpoint, updateData)
+    }
+
+    return apiClient.post<UnitMerge>(this.endpoint, updateData)
   }
 
   /**

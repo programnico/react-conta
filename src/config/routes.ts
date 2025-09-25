@@ -14,15 +14,19 @@ export const ROUTES = {
   // Rutas protegidas (requieren autenticación)
   PROTECTED: {
     DASHBOARD: '/dashboard',
-    USERS: '/users',
-    USER_PROFILE: '/users/profile',
-    ACCOUNT_SETTINGS: '/account-settings',
-    ACCOUNT_DETAILS: '/account-settings/account',
-    NOTIFICATIONS: '/account-settings/notifications',
-    FORM_LAYOUTS: '/form-layouts',
-    FORM_BASIC: '/form-layouts/basic',
-    FORM_ICONS: '/form-layouts/icons',
-    CARD_BASIC: '/card-basic'
+    USERS: '/dashboard/users',
+    USER_PROFILE: '/dashboard/users/profile',
+    ACCOUNT_SETTINGS: '/dashboard/account-settings',
+    ACCOUNT_DETAILS: '/dashboard/account-settings/account',
+    NOTIFICATIONS: '/dashboard/account-settings/notifications',
+    FORM_LAYOUTS: '/dashboard/form-layouts',
+    FORM_BASIC: '/dashboard/form-layouts/basic',
+    FORM_ICONS: '/dashboard/form-layouts/icons',
+    CARD_BASIC: '/dashboard/card-basic',
+    // General - Catálogos
+    GENERAL_CATALOGS: '/general/catalogs',
+    UNIT_MERGE: '/general/catalogs/unit-merge',
+    PERIOD_NAME: '/general/catalogs/period-name'
   }
 } as const
 
@@ -87,6 +91,28 @@ export const ROUTE_CONFIG = {
     permissions: [PERMISSIONS.DASHBOARD.VIEW],
     showInMenu: true,
     icon: 'ri-layout-card-line'
+  },
+  // General - Catálogos
+  [ROUTES.PROTECTED.GENERAL_CATALOGS]: {
+    public: false,
+    title: 'Catálogos',
+    permissions: [PERMISSIONS.USERS.VIEW],
+    showInMenu: true,
+    icon: 'ri-folder-line'
+  },
+  [ROUTES.PROTECTED.UNIT_MERGE]: {
+    public: false,
+    title: 'Unit Merge',
+    permissions: [PERMISSIONS.USERS.VIEW],
+    showInMenu: true,
+    icon: 'ri-merge-cells-horizontal'
+  },
+  [ROUTES.PROTECTED.PERIOD_NAME]: {
+    public: false,
+    title: 'Period Name',
+    permissions: [PERMISSIONS.USERS.VIEW],
+    showInMenu: true,
+    icon: 'ri-calendar-line'
   }
 } as const
 

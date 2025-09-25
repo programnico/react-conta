@@ -76,28 +76,27 @@ export const MENU_CONFIG: MenuItem[] = [
   {
     id: 'general',
     label: 'General',
-    path: '/general',
+    path: ROUTES.PROTECTED.GENERAL_CATALOGS,
     icon: 'ri-settings-line',
-    permissions: [PERMISSIONS.USERS.VIEW],
+    permissions: [PERMISSIONS.CATALOGS.VIEW],
     showInMenu: true,
     order: 4,
     children: [
       {
-        id: 'catalogs',
-        label: 'Catálogos',
-        path: '/general/catalogs',
-        permissions: [PERMISSIONS.USERS.VIEW],
-        showInMenu: true,
-        children: [
-          {
-            id: 'unit-merge',
-            label: 'Unit Merge',
-            path: '/general/catalogs/unit-merge',
-            icon: 'ri-merge-cells-horizontal',
-            permissions: [PERMISSIONS.USERS.VIEW],
-            showInMenu: true
-          }
-        ]
+        id: 'unit-merge',
+        label: 'Unit Merge',
+        path: ROUTES.PROTECTED.UNIT_MERGE,
+        icon: 'ri-merge-cells-horizontal',
+        permissions: [PERMISSIONS.CATALOGS.UNIT_MERGE],
+        showInMenu: true
+      },
+      {
+        id: 'period-name',
+        label: 'Period Name',
+        path: ROUTES.PROTECTED.PERIOD_NAME,
+        icon: 'ri-calendar-line',
+        permissions: [PERMISSIONS.CATALOGS.PERIOD_NAME],
+        showInMenu: true
       }
     ]
   },

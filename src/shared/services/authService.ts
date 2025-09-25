@@ -8,11 +8,6 @@ class AuthService {
    */
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      console.log('🔐 Login attempt with:')
-      console.log('- Base URL:', API_CONFIG.BASE_URL)
-      console.log('- Endpoint:', API_CONFIG.ENDPOINTS.AUTH.LOGIN)
-      console.log('- Full URL will be:', API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.AUTH.LOGIN)
-
       const response = await apiClient.postFormData<LoginResponse>(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
         identity: credentials.identity.trim(),
         password: credentials.password

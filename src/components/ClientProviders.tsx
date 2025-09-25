@@ -13,6 +13,7 @@ import type { Settings } from '@core/contexts/settingsContext'
 // Context Imports
 import { VerticalNavProvider } from '@menu/contexts/verticalNavContext'
 import { SettingsProvider } from '@core/contexts/settingsContext'
+import { PermissionsProvider } from '@/providers/PermissionsProvider'
 import ThemeProvider from '@components/theme'
 
 // Store Imports
@@ -31,11 +32,13 @@ const ClientProviders = (props: Props) => {
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <VerticalNavProvider>
-          <SettingsProvider settingsCookie={settingsCookie} mode={mode}>
-            <ThemeProvider direction={direction}>{children}</ThemeProvider>
-          </SettingsProvider>
-        </VerticalNavProvider>
+        <PermissionsProvider>
+          <VerticalNavProvider>
+            <SettingsProvider settingsCookie={settingsCookie} mode={mode}>
+              <ThemeProvider direction={direction}>{children}</ThemeProvider>
+            </SettingsProvider>
+          </VerticalNavProvider>
+        </PermissionsProvider>
       </PersistGate>
     </Provider>
   )

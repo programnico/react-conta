@@ -29,14 +29,26 @@ async function proxyRequest(request: NextRequest, pathSegments: string[]) {
   const targetUrl = `${BACKEND_URL}/${path}`
 
   try {
-    console.log(`🔄 Proxying ${request.method} request from ${request.url} to ${targetUrl}`)
-    console.log(`📋 Backend URL: ${BACKEND_URL}`)
-    console.log(`📋 Path segments: ${JSON.stringify(pathSegments)}`) // Get request body if it exists
+    // Get request body if it exists
     let body: any = undefined
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       const contentType = request.headers.get('content-type')
-      if (contentType?.includes('application/json')) {
-        body = JSON.stringify(await request.json())
+      const contentLength = request.headers.get('content-length')
+
+      // Only try to parse body if there actually is content
+      if (contentLength === '0' || !contentType) {
+        body = undefined
+      } else if (contentType?.includes('application/json')) {
+        try {
+          const requestText = await request.text()
+          if (requestText.trim()) {
+            body = JSON.stringify(JSON.parse(requestText))
+          } else {
+            body = undefined
+          }
+        } catch (e) {
+          body = undefined
+        }
       } else if (contentType?.includes('application/x-www-form-urlencoded')) {
         body = await request.text()
       } else {
@@ -59,14 +71,31 @@ async function proxyRequest(request: NextRequest, pathSegments: string[]) {
       body: body
     })
 
-    // Get response body
+    // Get response body - handle different content types
     let responseBody: any
     const responseContentType = response.headers.get('content-type')
+    const contentLength = response.headers.get('content-length')
 
-    if (responseContentType?.includes('application/json')) {
-      responseBody = await response.json()
+    // Only treat as empty if explicitly empty (status 204 OR content-length is exactly 0)
+    if (response.status === 204 || contentLength === '0') {
+      responseBody = ''
     } else {
-      responseBody = await response.text()
+      // Try to get response text first
+      const text = await response.text()
+
+      if (!text || text.trim() === '') {
+        responseBody = ''
+      } else if (responseContentType?.includes('application/json')) {
+        // Parse JSON response
+        try {
+          responseBody = JSON.parse(text)
+        } catch (e) {
+          responseBody = { error: 'Invalid JSON response', rawText: text }
+        }
+      } else {
+        // Non-JSON response
+        responseBody = text
+      }
     }
 
     // Create response with CORS headers
@@ -90,15 +119,8 @@ async function proxyRequest(request: NextRequest, pathSegments: string[]) {
     proxyResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
     proxyResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
 
-    console.log(`✅ Proxy successful: ${response.status}`)
     return proxyResponse
   } catch (error) {
-    console.error('❌ Proxy error:', error)
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      targetUrl,
-      method: request.method
-    })
     return NextResponse.json(
       {
         error: 'Proxy request failed',

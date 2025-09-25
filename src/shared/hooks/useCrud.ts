@@ -1,5 +1,4 @@
-// shared/hooks/useCrud.ts
-import { useState, useCallback, useEffect } from 'react'
+﻿import { useState, useCallback, useEffect } from 'react'
 import type { BaseCrudService, CrudHookResult } from '@/shared/services/BaseCrudService'
 
 export interface CrudOptions {
@@ -12,7 +11,8 @@ export function useCrud<T, CreateT, UpdateT>(
   service: BaseCrudService<T, CreateT, UpdateT>,
   options: CrudOptions = {}
 ): CrudHookResult<T, CreateT, UpdateT> {
-  // State
+  const { autoLoad = false, onError, onSuccess } = options
+
   const [data, setData] = useState<T[]>([])
   const [currentItem, setCurrentItem] = useState<T | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -21,171 +21,104 @@ export function useCrud<T, CreateT, UpdateT>(
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Clear error helper
   const clearError = useCallback(() => {
     setError(null)
   }, [])
 
-  // Load all items
   const load = useCallback(
     async (filters?: Record<string, any>) => {
-      setIsLoading(true)
-      setError(null)
-
       try {
+        setIsLoading(true)
+        setError(null)
         const result = await service.getAll(filters)
         setData(result)
-        options.onSuccess?.('Data loaded successfully')
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load data'
-        setError(errorMessage)
-        options.onError?.(errorMessage)
+        setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
         setIsLoading(false)
       }
     },
-    [service, options]
+    [service]
   )
 
-  // Load single item by ID
-  const loadById = useCallback(
-    async (id: string | number): Promise<T> => {
-      setError(null)
-
+  const create = useCallback(
+    async (data: CreateT): Promise<T> => {
       try {
-        const result = await service.getById(id)
-        setCurrentItem(result)
+        setIsCreating(true)
+        setError(null)
+        const result = await service.create(data)
+        setData(prev => [...prev, result])
         return result
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load item'
-        setError(errorMessage)
-        options.onError?.(errorMessage)
-        throw err
-      }
-    },
-    [service, options]
-  )
-
-  // Create new item
-  const create = useCallback(
-    async (itemData: CreateT): Promise<T> => {
-      setIsCreating(true)
-      setError(null)
-
-      try {
-        const newItem = await service.create(itemData)
-        setData(prev => [...prev, newItem])
-        options.onSuccess?.('Item created successfully')
-        return newItem
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to create item'
-        setError(errorMessage)
-        options.onError?.(errorMessage)
+        setError(err instanceof Error ? err.message : 'An error occurred')
         throw err
       } finally {
         setIsCreating(false)
       }
     },
-    [service, options]
+    [service]
   )
 
-  // Update existing item
   const update = useCallback(
-    async (id: string | number, itemData: UpdateT): Promise<T> => {
-      setIsUpdating(true)
-      setError(null)
-
+    async (id: string | number, data: UpdateT): Promise<T> => {
       try {
-        const updatedItem = await service.update(id, itemData)
-
-        // Update the item in the local state
-        setData(prev => prev.map(item => ((item as any).id === id ? updatedItem : item)))
-
-        // Update current item if it's the one being edited
-        if (currentItem && (currentItem as any).id === id) {
-          setCurrentItem(updatedItem)
-        }
-
-        options.onSuccess?.('Item updated successfully')
-        return updatedItem
+        setIsUpdating(true)
+        setError(null)
+        const result = await service.update(id, data)
+        setData(prev => prev.map(item => ((item as any).id === id ? result : item)))
+        return result
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to update item'
-        setError(errorMessage)
-        options.onError?.(errorMessage)
+        setError(err instanceof Error ? err.message : 'An error occurred')
         throw err
       } finally {
         setIsUpdating(false)
       }
     },
-    [service, currentItem, options]
+    [service]
   )
 
-  // Delete item
-  const deleteItem = useCallback(
+  const remove = useCallback(
     async (id: string | number): Promise<void> => {
-      setIsDeleting(true)
-      setError(null)
-
       try {
+        setIsDeleting(true)
+        setError(null)
         await service.delete(id)
-
-        // Remove the item from local state
         setData(prev => prev.filter(item => (item as any).id !== id))
-
-        // Clear current item if it's the one being deleted
-        if (currentItem && (currentItem as any).id === id) {
-          setCurrentItem(null)
-        }
-
-        options.onSuccess?.('Item deleted successfully')
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to delete item'
-        setError(errorMessage)
-        options.onError?.(errorMessage)
+        setError(err instanceof Error ? err.message : 'An error occurred')
         throw err
       } finally {
         setIsDeleting(false)
       }
     },
-    [service, currentItem, options]
+    [service]
   )
 
-  // Refresh data
-  const refresh = useCallback(async () => {
-    return load()
-  }, [load])
+  const setCurrent = useCallback((item: T | null) => {
+    setCurrentItem(item)
+  }, [])
 
-  // Auto-load on mount if requested
   useEffect(() => {
-    if (options.autoLoad) {
+    if (autoLoad) {
       load()
     }
-  }, [options.autoLoad, load])
+  }, [autoLoad])
 
   return {
-    // Data
     data,
     currentItem,
-
-    // Loading states
     isLoading,
     isCreating,
     isUpdating,
     isDeleting,
-
-    // Error handling
     error,
-
-    // Actions
+    clearError,
     load,
-    loadById,
+    loadById: async (id: string | number) => service.getById(id),
     create,
     update,
-    delete: deleteItem,
-
-    // State management
-    setCurrentItem,
-    clearError,
-    refresh
+    delete: remove,
+    refresh: load,
+    setCurrentItem: setCurrent
   }
 }

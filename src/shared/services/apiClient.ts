@@ -60,10 +60,18 @@ export class ApiClient {
   }
 
   private async getToken(): Promise<string | null> {
-    // Get token from Redux store - we'll implement this later
+    // Get token from Redux store
     if (typeof window !== 'undefined') {
-      // For now, get from localStorage as fallback
-      return localStorage.getItem('accessToken')
+      try {
+        // Import store dynamically to avoid SSR issues
+        const { store } = await import('@/store')
+        const state = store.getState()
+        return state.auth.accessToken
+      } catch (error) {
+        console.error('Error accessing Redux store for token:', error)
+        // Fallback to localStorage
+        return localStorage.getItem('accessToken')
+      }
     }
     return null
   }
@@ -181,7 +189,7 @@ export const API_CONFIG = {
 
   ENDPOINTS: {
     AUTH: {
-      LOGIN: '/auth/login',
+      LOGIN: '/auth/authentication',
       VERIFY: '/auth/verify',
       LOGOUT: '/auth/logout',
       REFRESH: '/auth/refresh',

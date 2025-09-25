@@ -29,23 +29,27 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ childr
       return [...ROLES.GUEST.permissions]
     }
 
-    // Aquí puedes implementar lógica más compleja basada en el usuario
-    // Por ejemplo, si el usuario tiene un campo 'role' o 'permissions'
-    const userRole = user.role || 'USER'
+    // TEMPORAL: Asignar permisos de ADMIN para testing hasta que el backend envíe roles
+    // Cambiar esto cuando el backend incluya información de roles/permisos
+    return [...ROLES.ADMIN.permissions]
 
-    switch (userRole) {
-      case 'ADMIN':
-        return [...ROLES.ADMIN.permissions]
-      case 'USER':
-        return [...ROLES.USER.permissions]
-      default:
-        return [...ROLES.GUEST.permissions]
-    }
+    // Lógica original comentada hasta que el backend envíe roles:
+    // const userRole = user.role || 'USER'
+    // switch (userRole) {
+    //   case 'ADMIN':
+    //     return [...ROLES.ADMIN.permissions]
+    //   case 'USER':
+    //     return [...ROLES.USER.permissions]
+    //   default:
+    //     return [...ROLES.GUEST.permissions]
+    // }
   }, [isAuthenticated, user])
 
   const userRole = useMemo(() => {
     if (!isAuthenticated || !user) return 'GUEST'
-    return user.role || 'USER'
+    // TEMPORAL: Asignar rol ADMIN para testing
+    return 'ADMIN'
+    // return user.role || 'USER'  // Descomentar cuando el backend envíe roles
   }, [isAuthenticated, user])
 
   // Función para verificar si el usuario tiene un permiso específico

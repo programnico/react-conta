@@ -38,6 +38,16 @@ export const PERMISSIONS = {
     VIEW: 'forms:view',
     CREATE: 'forms:create',
     EDIT: 'forms:edit'
+  },
+
+  // Permisos de catálogos generales
+  CATALOGS: {
+    VIEW: 'catalogs:view',
+    CREATE: 'catalogs:create',
+    EDIT: 'catalogs:edit',
+    DELETE: 'catalogs:delete',
+    UNIT_MERGE: 'catalogs:unit-merge',
+    PERIOD_NAME: 'catalogs:period-name'
   }
 } as const
 
@@ -64,7 +74,8 @@ export const ROLES = {
       ...Object.values(PERMISSIONS.DASHBOARD),
       ...Object.values(PERMISSIONS.USERS),
       ...Object.values(PERMISSIONS.SETTINGS),
-      ...Object.values(PERMISSIONS.FORMS)
+      ...Object.values(PERMISSIONS.FORMS),
+      ...Object.values(PERMISSIONS.CATALOGS)
     ]
   },
   USER: {

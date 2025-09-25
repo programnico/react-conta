@@ -1,6 +1,6 @@
 // store/slices/unitMergeSlice.ts
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import UnitMergeService from '@/services/unitMergeService'
+import { unitMergeService } from '@/features/general/unit-merge/services/unitMergeService'
 import type { UnitMerge, UnitMergeState, CreateUnitMergeRequest, UpdateUnitMergeRequest } from '@/types/unitMerge'
 import type { RootState } from '@/store'
 
@@ -18,14 +18,7 @@ const initialState: UnitMergeState = {
 // Async thunks
 export const fetchUnitMerges = createAsyncThunk('unitMerge/fetchAll', async (_, { getState, rejectWithValue }) => {
   try {
-    const state = getState() as RootState
-    const token = state.auth.accessToken
-
-    if (!token) {
-      throw new Error('No authentication token available')
-    }
-
-    const data = await UnitMergeService.getAll(token)
+    const data = await unitMergeService.getAll()
     return data
   } catch (error) {
     return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch unit merges')
@@ -36,14 +29,7 @@ export const createUnitMerge = createAsyncThunk(
   'unitMerge/create',
   async (data: CreateUnitMergeRequest, { getState, rejectWithValue }) => {
     try {
-      const state = getState() as RootState
-      const token = state.auth.accessToken
-
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
-
-      const result = await UnitMergeService.create(data, token)
+      const result = await unitMergeService.create(data)
       return result
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to create unit merge')
@@ -55,14 +41,7 @@ export const updateUnitMerge = createAsyncThunk(
   'unitMerge/update',
   async (data: UpdateUnitMergeRequest, { getState, rejectWithValue }) => {
     try {
-      const state = getState() as RootState
-      const token = state.auth.accessToken
-
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
-
-      const result = await UnitMergeService.update(data, token)
+      const result = await unitMergeService.update(data.id, data)
       return result
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to update unit merge')
@@ -74,14 +53,7 @@ export const deleteUnitMerge = createAsyncThunk(
   'unitMerge/delete',
   async (id: number, { getState, rejectWithValue }) => {
     try {
-      const state = getState() as RootState
-      const token = state.auth.accessToken
-
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
-
-      await UnitMergeService.delete(id, token)
+      await unitMergeService.delete(id)
       return id
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete unit merge')

@@ -53,9 +53,7 @@ const UnitMergePage = () => {
     activeItems,
     getByName
   } = useUnitMerge({
-    autoLoad: true,
-    onSuccess: message => console.log('Success:', message),
-    onError: error => console.error('Error:', error)
+    autoLoad: false
   })
 
   // Modal states
@@ -64,6 +62,11 @@ const UnitMergePage = () => {
   const [currentItem, setCurrentItem] = useState<UnitMerge | null>(null)
   const [formData, setFormData] = useState({ name: '' })
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Load data on component mount
+  useEffect(() => {
+    loadItems()
+  }, [])
 
   // Clear error when dialog closes
   useEffect(() => {
@@ -123,7 +126,6 @@ const UnitMergePage = () => {
       handleCloseDialog()
     } catch (error) {
       // Error is handled by the hook
-      console.error('Form submission error:', error)
     }
   }
 
@@ -135,7 +137,6 @@ const UnitMergePage = () => {
         await deleteItem(item.id)
       } catch (error) {
         // Error is handled by the hook
-        console.error('Delete error:', error)
       }
     }
   }
