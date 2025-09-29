@@ -1,7 +1,7 @@
 // API Route that acts as a proxy to the backend server
 import { NextRequest, NextResponse } from 'next/server'
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
 
 export async function GET(request: NextRequest, { params }: { params: { proxy: string[] } }) {
   return proxyRequest(request, params.proxy)

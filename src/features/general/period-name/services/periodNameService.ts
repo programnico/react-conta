@@ -8,7 +8,7 @@ class PeriodNameService extends BaseCrudService<PeriodName, CreatePeriodNameRequ
 
   constructor() {
     super({
-      useFormData: true // Same API format as unit-merge
+      useFormData: true // API expects FormData format
     })
   }
 

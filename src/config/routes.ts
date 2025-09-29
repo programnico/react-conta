@@ -25,8 +25,11 @@ export const ROUTES = {
     CARD_BASIC: '/dashboard/card-basic',
     // General - Catálogos
     GENERAL_CATALOGS: '/general/catalogs',
-    UNIT_MERGE: '/general/catalogs/unit-merge',
-    PERIOD_NAME: '/general/catalogs/period-name'
+    PERIOD_NAME: '/general/catalogs/period-name',
+    // Purchase Module
+    PURCHASES: '/purchase',
+    // Suppliers Module
+    SUPPLIERS: '/suppliers'
   }
 } as const
 
@@ -100,19 +103,29 @@ export const ROUTE_CONFIG = {
     showInMenu: true,
     icon: 'ri-folder-line'
   },
-  [ROUTES.PROTECTED.UNIT_MERGE]: {
-    public: false,
-    title: 'Unit Merge',
-    permissions: [PERMISSIONS.USERS.VIEW],
-    showInMenu: true,
-    icon: 'ri-merge-cells-horizontal'
-  },
+
   [ROUTES.PROTECTED.PERIOD_NAME]: {
     public: false,
     title: 'Period Name',
     permissions: [PERMISSIONS.USERS.VIEW],
     showInMenu: true,
     icon: 'ri-calendar-line'
+  },
+
+  [ROUTES.PROTECTED.PURCHASES]: {
+    public: false,
+    title: 'Gestión de Compras',
+    permissions: [PERMISSIONS.PURCHASES.VIEW],
+    showInMenu: true,
+    icon: 'ri-shopping-cart-line'
+  },
+
+  [ROUTES.PROTECTED.SUPPLIERS]: {
+    public: false,
+    title: 'Gestión de Proveedores',
+    permissions: [PERMISSIONS.SUPPLIERS.VIEW],
+    showInMenu: true,
+    icon: 'ri-building-line'
   }
 } as const
 

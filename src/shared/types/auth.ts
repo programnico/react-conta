@@ -1,6 +1,6 @@
 // types/auth.ts
 export interface LoginCredentials {
-  identity: string
+  email: string
   password: string
 }
 
@@ -14,39 +14,52 @@ export interface ApiResponse<T = any> {
 }
 
 export interface LoginResponse {
-  message?: string
-  tk?: string
-  token?: string // Alternativa común
-  access_token?: string // Otra alternativa común
-  change_password?: boolean
-  requiresTwoFactor?: boolean
-  user?: UserData | null
+  status: string
+  message: string
+  data?: {
+    requires_2fa?: boolean
+    user_id?: number
+    email_masked?: string
+    verification_token?: string
+    user?: UserData
+    token?: string
+  }
   [key: string]: any // Permitir propiedades adicionales flexibles
 }
 
 export interface VerificationRequest {
   code: string
-  tk?: string
-  token?: string
+  verification_token: string
 }
 
 export interface VerificationResponse {
-  message?: string
-  success?: boolean
-  user?: UserData
-  access_token?: string
-  refresh_token?: string
-  token?: string // Alternativa
-  tk?: string // Otra alternativa
+  status: string
+  message: string
+  data?: {
+    user?: UserData
+    token?: string
+  }
   [key: string]: any // Permitir propiedades adicionales
 }
 
 export interface UserData {
-  id: string
+  id: number
   email: string
   name: string
+  email_verified_at?: string
+  created_at?: string
+  updated_at?: string
   avatar?: string
-  role?: string
+  roles?: Array<{
+    id: number
+    name: string
+    guard_name: string
+    permissions: string[]
+    created_at: string
+    updated_at: string
+  }>
+  permissions?: string[]
+  all_permissions?: string[]
 }
 
 export interface AuthState {

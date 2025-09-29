@@ -46,8 +46,25 @@ export const PERMISSIONS = {
     CREATE: 'catalogs:create',
     EDIT: 'catalogs:edit',
     DELETE: 'catalogs:delete',
-    UNIT_MERGE: 'catalogs:unit-merge',
     PERIOD_NAME: 'catalogs:period-name'
+  },
+
+  // Permisos de compras
+  PURCHASES: {
+    VIEW: 'purchases:view',
+    CREATE: 'purchases:create',
+    EDIT: 'purchases:edit',
+    DELETE: 'purchases:delete',
+    APPROVE: 'purchases:approve',
+    RECEIVE: 'purchases:receive'
+  },
+
+  SUPPLIERS: {
+    VIEW: 'suppliers:view',
+    CREATE: 'suppliers:create',
+    EDIT: 'suppliers:edit',
+    DELETE: 'suppliers:delete',
+    MANAGE: 'suppliers:manage'
   }
 } as const
 
@@ -75,7 +92,9 @@ export const ROLES = {
       ...Object.values(PERMISSIONS.USERS),
       ...Object.values(PERMISSIONS.SETTINGS),
       ...Object.values(PERMISSIONS.FORMS),
-      ...Object.values(PERMISSIONS.CATALOGS)
+      ...Object.values(PERMISSIONS.CATALOGS),
+      ...Object.values(PERMISSIONS.PURCHASES),
+      ...Object.values(PERMISSIONS.SUPPLIERS)
     ]
   },
   USER: {
@@ -86,7 +105,10 @@ export const ROLES = {
       PERMISSIONS.AUTH.CHANGE_PASSWORD,
       PERMISSIONS.DASHBOARD.VIEW,
       PERMISSIONS.USERS.VIEW_PROFILE,
-      PERMISSIONS.SETTINGS.ACCOUNT
+      PERMISSIONS.SETTINGS.ACCOUNT,
+      PERMISSIONS.PURCHASES.VIEW,
+      PERMISSIONS.SUPPLIERS.VIEW,
+      PERMISSIONS.PURCHASES.CREATE
     ]
   },
   GUEST: {

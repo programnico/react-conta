@@ -44,7 +44,11 @@ const NavigationMenu = () => {
   const [openItems, setOpenItems] = useState<Record<string, boolean>>({})
 
   // Filter menu items based on user permissions
+  // TEMPORAL: Mostrar todos los elementos para debug
+  console.log('Current permissions:', permissions)
+  console.log('MENU_CONFIG:', MENU_CONFIG)
   const visibleMenuItems = filterMenuByPermissions(MENU_CONFIG, permissions)
+  console.log('Visible menu items:', visibleMenuItems)
 
   const handleToggle = (itemId: string) => {
     setOpenItems(prev => ({

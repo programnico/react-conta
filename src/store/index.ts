@@ -5,27 +5,31 @@ import storage from './storage'
 
 // Shared/Global reducers
 import authReducer from '@/shared/store/authSlice'
+import rolesReducer from '@/shared/store/rolesSlice'
 
 // Feature reducers
-import unitMergeReducer from './slices/unitMergeSlice'
+import purchaseReducer from './slices/purchaseSlice'
+import supplierReducer from './slices/supplierSlice'
 
 // Persist configuration
 const persistConfig = {
   key: 'root',
-  version: 1,
+  version: 1, // Keep version 1 to preserve existing sessions
   storage,
-  whitelist: ['auth'] // Only persist auth state
+  whitelist: ['auth', 'roles', 'purchases', 'suppliers'] // Persist auth, roles, purchases and suppliers state
 }
 
 // Root reducer with modular structure
 const rootReducer = combineReducers({
   // 🌟 Global state (always available)
   auth: authReducer,
+  roles: rolesReducer,
 
   // 🏢 Feature modules (loaded as needed)
-  unitMerge: unitMergeReducer
+  purchases: purchaseReducer,
+  suppliers: supplierReducer
+
   // Future modules:
-  // purchase: purchaseReducer,
   // accounting: accountingReducer,
   // administration: administrationReducer
 })

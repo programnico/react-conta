@@ -9,40 +9,68 @@ class AuthService {
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
       const response = await apiClient.postFormData<LoginResponse>(API_CONFIG.ENDPOINTS.AUTH.LOGIN, {
-        identity: credentials.identity.trim(),
+        email: credentials.email.trim(),
         password: credentials.password
       })
 
-      // Validate response structure - check for different possible structures
+      // Validate response structure
       if (!response) {
-        console.error('🔴 No response received from server')
         throw new ApiErrorClass(500, 'No response from server', 'NO_RESPONSE')
       }
 
       if (typeof response !== 'object') {
-        console.error('🔴 Response is not an object:', typeof response)
         throw new ApiErrorClass(500, 'Invalid response format', 'INVALID_FORMAT')
       }
 
-      // Check if response has token in different possible properties
-      const token = response.tk || response.token || response.access_token
+      // Detectar si la respuesta tiene la estructura nueva con status/data o la estructura directa
+      let normalizedResponse: LoginResponse
+      const responseData = response as any // Usar any para manejar estructuras flexibles
 
-      if (!token) {
-        console.error('🔴 Invalid response structure:', response)
-        throw new ApiErrorClass(500, 'Invalid server response: missing token', 'INVALID_RESPONSE')
-      }
+      if ('status' in responseData && responseData.status && 'data' in responseData) {
+        // Estructura nueva con status y data wrapper
+        if (responseData.status === 'error') {
+          const errorMessage = responseData.message || 'Credenciales incorrectas'
+          throw new ApiErrorClass(401, errorMessage, 'INVALID_CREDENTIALS')
+        }
 
-      // Normalize response to expected format
-      const normalizedResponse: LoginResponse = {
-        tk: token,
-        message: response.message || 'Login successful',
-        requiresTwoFactor: response.requiresTwoFactor || false,
-        user: response.user || null
+        if (responseData.status !== 'success') {
+          throw new ApiErrorClass(500, 'Unexpected response status', 'INVALID_STATUS')
+        }
+
+        normalizedResponse = responseData
+      } else if ('requires_2fa' in responseData || 'user' in responseData || 'token' in responseData) {
+        // Estructura directa (respuesta actual del servidor)
+        if ('requires_2fa' in responseData) {
+          // Es respuesta de 2FA requerido
+          normalizedResponse = {
+            status: 'success',
+            message: responseData.message || 'Verificación de dos factores requerida',
+            data: {
+              requires_2fa: responseData.requires_2fa,
+              user_id: responseData.user_id,
+              email_masked: responseData.email_masked,
+              verification_token: responseData.verification_token
+            }
+          }
+        } else if ('user' in responseData && 'token' in responseData) {
+          // Es respuesta de login directo exitoso
+          normalizedResponse = {
+            status: 'success',
+            message: responseData.message || 'Inicio de sesión exitoso',
+            data: {
+              user: responseData.user,
+              token: responseData.token
+            }
+          }
+        } else {
+          throw new ApiErrorClass(500, 'Unknown response structure', 'UNKNOWN_STRUCTURE')
+        }
+      } else {
+        throw new ApiErrorClass(500, 'Invalid response structure', 'INVALID_STRUCTURE')
       }
 
       return normalizedResponse
     } catch (error) {
-      console.error('🔴 Login error:', error)
       if (error instanceof ApiErrorClass) {
         throw error
       }
@@ -57,10 +85,45 @@ class AuthService {
     try {
       const response = await apiClient.postFormData<VerificationResponse>(API_CONFIG.ENDPOINTS.AUTH.VERIFY, {
         code: verificationData.code.trim(),
-        tk: verificationData.tk
+        verification_token: verificationData.verification_token
       })
 
-      return response
+      // Validate response structure
+      if (!response) {
+        throw new ApiErrorClass(500, 'No response from server', 'NO_RESPONSE')
+      }
+
+      // Detectar estructura de respuesta flexible
+      let normalizedResponse: VerificationResponse
+      const responseData = response as any
+
+      if ('status' in responseData && responseData.status && 'data' in responseData) {
+        // Estructura nueva con status y data wrapper
+        if (responseData.status === 'error') {
+          const errorMessage = responseData.message || 'Código de verificación inválido'
+          throw new ApiErrorClass(401, errorMessage, 'INVALID_VERIFICATION_CODE')
+        }
+
+        if (responseData.status !== 'success') {
+          throw new ApiErrorClass(500, 'Unexpected response status', 'INVALID_STATUS')
+        }
+
+        normalizedResponse = responseData
+      } else if ('user' in responseData && 'token' in responseData) {
+        // Estructura directa (respuesta actual del servidor)
+        normalizedResponse = {
+          status: 'success',
+          message: responseData.message || 'Autenticación de dos factores completada exitosamente',
+          data: {
+            user: responseData.user,
+            token: responseData.token
+          }
+        }
+      } else {
+        throw new ApiErrorClass(500, 'Invalid response structure', 'INVALID_STRUCTURE')
+      }
+
+      return normalizedResponse
     } catch (error) {
       if (error instanceof ApiErrorClass) {
         throw error
@@ -157,14 +220,56 @@ class AuthService {
   }
 
   /**
-   * Validate token
+   * Validate token with server using profile endpoint
    */
   static async validateToken(token: string): Promise<boolean> {
     try {
-      await apiClient.get('/auth/validate')
+      // Use profile endpoint as a lightweight way to validate token
+      await apiClient.get('/auth/profile')
       return true
     } catch (error) {
-      return false
+      if (error instanceof ApiErrorClass) {
+        // Log specific validation errors for debugging
+        if (error.status === 401) {
+          console.info('Token validation failed: token expired or invalid')
+          return false
+        } else if (error.status === 404) {
+          // If /auth/profile doesn't exist, try /auth/me
+          try {
+            await apiClient.get('/auth/me')
+            return true
+          } catch (meError) {
+            if (meError instanceof ApiErrorClass && meError.status === 401) {
+              return false
+            }
+            // For other errors, assume token is still valid to avoid unnecessary logouts
+            console.warn('Token validation inconclusive, assuming valid to avoid disruption')
+            return true
+          }
+        } else if (error.status >= 500) {
+          console.warn('Token validation failed: server error, assuming token is still valid')
+          return true // Don't logout user for server errors
+        }
+      }
+
+      // For network errors or other issues, assume token is valid to avoid disrupting user
+      console.warn('Token validation error, assuming valid:', error)
+      return true
+    }
+  }
+
+  /**
+   * Get current user info (light validation)
+   */
+  static async getCurrentUser(): Promise<any> {
+    try {
+      const response = await apiClient.get('/auth/me')
+      return response
+    } catch (error) {
+      if (error instanceof ApiErrorClass) {
+        throw error
+      }
+      throw new ApiErrorClass(500, 'Failed to get current user', 'USER_FETCH_ERROR')
     }
   }
 }

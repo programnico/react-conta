@@ -46,7 +46,7 @@ const LoginForm = () => {
 
   // Local state
   const [credentials, setCredentials] = useState<LoginCredentials>({
-    identity: '',
+    email: '',
     password: ''
   })
   const [verificationCode, setVerificationCode] = useState('')
@@ -63,7 +63,7 @@ const LoginForm = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!credentials.identity.trim() || !credentials.password) {
+    if (!credentials.email.trim() || !credentials.password) {
       return
     }
 
@@ -81,7 +81,7 @@ const LoginForm = () => {
 
     const verificationData: VerificationRequest = {
       code: verificationCode.trim(),
-      tk: verificationToken
+      verification_token: verificationToken
     }
 
     dispatch(verifyCodeAsync(verificationData))
@@ -99,17 +99,18 @@ const LoginForm = () => {
       <div className='flex flex-col gap-4'>
         <TextField
           fullWidth
-          label='Email or Username'
-          value={credentials.identity}
+          label='Email'
+          type='email'
+          value={credentials.email}
           onChange={e =>
             setCredentials(prev => ({
               ...prev,
-              identity: e.target.value
+              email: e.target.value
             }))
           }
           disabled={isLoading}
           required
-          autoComplete='username'
+          autoComplete='email'
         />
 
         <TextField
@@ -141,7 +142,7 @@ const LoginForm = () => {
           type='submit'
           variant='contained'
           size='large'
-          disabled={isLoading || !credentials.identity.trim() || !credentials.password}
+          disabled={isLoading || !credentials.email.trim() || !credentials.password}
           startIcon={isLoading && <CircularProgress size={20} />}
         >
           {isLoading ? 'Signing In...' : 'Sign In'}

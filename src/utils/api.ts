@@ -10,9 +10,7 @@ export const API_CONFIG = {
       LOGIN: '/auth/authentication',
       VERIFY: '/auth/verify'
     },
-    PEI: {
-      UNIT_MERGE: '/pei/unit-merge'
-    }
+    PEI: {}
   }
 }
 

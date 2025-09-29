@@ -6,12 +6,6 @@ import Link from 'next/link'
 export default function CatalogsPage() {
   const catalogs = [
     {
-      title: 'Unit Merge',
-      description: 'Manage unit merge configurations and operations',
-      path: '/general/catalogs/unit-merge',
-      icon: '🔗'
-    },
-    {
       title: 'Period Name',
       description: 'Manage period names for your system',
       path: '/general/catalogs/period-name',

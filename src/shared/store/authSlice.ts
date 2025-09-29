@@ -177,10 +177,28 @@ const authSlice = createSlice({
       .addCase(loginAsync.fulfilled, (state, action) => {
         state.isLoading = false
         state.error = null
-        state.verificationToken = action.payload.tk || null
-        state.changePasswordRequired = action.payload.change_password || false
-        state.requiresVerification = true
-        state.loginStep = 'verification'
+
+        const response = action.payload
+
+        // Caso 1: Login exitoso directo (sin 2FA)
+        if (response.data?.user && response.data?.token) {
+          state.isAuthenticated = true
+          state.user = response.data.user
+          state.accessToken = response.data.token
+          state.requiresVerification = false
+          state.loginStep = 'completed'
+        }
+        // Caso 2: Requiere 2FA
+        else if (response.data?.requires_2fa && response.data?.verification_token) {
+          state.verificationToken = response.data.verification_token
+          state.requiresVerification = true
+          state.loginStep = 'verification'
+        }
+        // Caso inesperado
+        else {
+          state.error = 'Respuesta inesperada del servidor'
+          state.loginStep = 'credentials'
+        }
       })
       .addCase(loginAsync.rejected, (state, action) => {
         state.isLoading = false
@@ -198,30 +216,18 @@ const authSlice = createSlice({
         state.isLoading = false
         state.error = null
 
-        // Verificar diferentes formas de determinar el éxito
-        const payload = action.payload as VerificationResponse
-        const isSuccess =
-          payload.success === true ||
-          (payload.access_token && payload.access_token.length > 0) ||
-          (payload.token && payload.token.length > 0) ||
-          // Si no hay campo success pero hay tokens, asumir éxito
-          (!('success' in payload) && (payload.access_token || payload.token))
+        const response = action.payload
 
-        state.isAuthenticated = Boolean(isSuccess)
-        state.requiresVerification = false
-        state.verificationToken = null
-        state.loginStep = 'completed'
-
-        if (action.payload.user) {
-          state.user = action.payload.user
-        }
-
-        if (action.payload.access_token) {
-          state.accessToken = action.payload.access_token
-        }
-
-        if (action.payload.refresh_token) {
-          state.refreshToken = action.payload.refresh_token
+        // Verificar que la respuesta sea exitosa y tenga los datos necesarios
+        if (response.status === 'success' && response.data?.user && response.data?.token) {
+          state.isAuthenticated = true
+          state.user = response.data.user
+          state.accessToken = response.data.token
+          state.requiresVerification = false
+          state.verificationToken = null
+          state.loginStep = 'completed'
+        } else {
+          state.error = 'Respuesta de verificación inesperada'
         }
       })
       .addCase(verifyCodeAsync.rejected, (state, action) => {

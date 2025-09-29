@@ -1,7 +1,7 @@
 // hooks/useAuth.ts
 import { useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAppDispatch, useAppSelector } from './redux'
+import { useAppDispatch, useAppSelector } from '@/shared/hooks/redux'
 import {
   loginAsync,
   verifyCodeAsync,

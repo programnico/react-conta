@@ -61,8 +61,7 @@ export default function BackendExplorer() {
       '/login',
       '/api/auth/login',
       '/api/auth/authentication',
-      '/api/login',
-      '/pei/unit-merge'
+      '/api/login'
     ]
 
     for (const endpoint of endpoints) {

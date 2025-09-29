@@ -20,11 +20,6 @@ export const navigationConfig: Record<string, ModuleConfig> = {
     icon: 'ri-settings-line',
     items: [
       {
-        path: '/general/catalogs/unit-merge',
-        label: 'Unit Merge',
-        icon: 'ri-merge-cells-horizontal'
-      },
-      {
         path: '/general/catalogs/categories',
         label: 'Categories',
         icon: 'ri-bookmark-line'
@@ -34,23 +29,13 @@ export const navigationConfig: Record<string, ModuleConfig> = {
 
   purchase: {
     key: 'purchase',
-    label: 'Purchase',
+    label: 'Gestión de Compras',
     icon: 'ri-shopping-cart-line',
     items: [
       {
-        path: '/purchase/orders',
-        label: 'Purchase Orders',
-        icon: 'ri-file-list-line'
-      },
-      {
-        path: '/purchase/suppliers',
-        label: 'Suppliers',
-        icon: 'ri-truck-line'
-      },
-      {
-        path: '/purchase/reports',
-        label: 'Reports',
-        icon: 'ri-bar-chart-line'
+        path: '/purchase',
+        label: 'Compras',
+        icon: 'ri-shopping-cart-line'
       }
     ]
   },

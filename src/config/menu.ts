@@ -74,6 +74,24 @@ export const MENU_CONFIG: MenuItem[] = [
     ]
   },
   {
+    id: 'purchase',
+    label: 'Gestión de Compras',
+    path: ROUTES.PROTECTED.PURCHASES,
+    icon: 'ri-shopping-cart-line',
+    permissions: [PERMISSIONS.PURCHASES.VIEW],
+    showInMenu: true,
+    order: 3.5
+  },
+  {
+    id: 'suppliers',
+    label: 'Gestión de Proveedores',
+    path: ROUTES.PROTECTED.SUPPLIERS,
+    icon: 'ri-building-line',
+    permissions: [PERMISSIONS.SUPPLIERS.VIEW],
+    showInMenu: true,
+    order: 3.6
+  },
+  {
     id: 'general',
     label: 'General',
     path: ROUTES.PROTECTED.GENERAL_CATALOGS,
@@ -82,14 +100,6 @@ export const MENU_CONFIG: MenuItem[] = [
     showInMenu: true,
     order: 4,
     children: [
-      {
-        id: 'unit-merge',
-        label: 'Unit Merge',
-        path: ROUTES.PROTECTED.UNIT_MERGE,
-        icon: 'ri-merge-cells-horizontal',
-        permissions: [PERMISSIONS.CATALOGS.UNIT_MERGE],
-        showInMenu: true
-      },
       {
         id: 'period-name',
         label: 'Period Name',

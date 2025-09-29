@@ -55,7 +55,6 @@ export class ApiClient {
       })
       return url.toString()
     }
-
     return fullURL
   }
 
@@ -68,8 +67,7 @@ export class ApiClient {
         const state = store.getState()
         return state.auth.accessToken
       } catch (error) {
-        console.error('Error accessing Redux store for token:', error)
-        // Fallback to localStorage
+        // Fallback to localStorage if Redux store is not available
         return localStorage.getItem('accessToken')
       }
     }
@@ -94,10 +92,23 @@ export class ApiClient {
     let body: any = undefined
     if (data) {
       if (useFormData) {
-        body = new FormData()
-        Object.entries(data).forEach(([key, value]) => {
-          body.append(key, value)
-        })
+        // Check if data is already a FormData instance
+        if (data instanceof FormData) {
+          body = data
+        } else {
+          // Create FormData from object
+          body = new FormData()
+          Object.entries(data).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+              // Handle arrays (e.g., permissions[])
+              value.forEach(item => {
+                body.append(`${key}[]`, item)
+              })
+            } else {
+              body.append(key, value)
+            }
+          })
+        }
         // Remove Content-Type for FormData (browser will set it)
         delete requestHeaders['Content-Type']
       } else {
@@ -124,6 +135,11 @@ export class ApiClient {
           errorCode = errorData.code || 'API_ERROR'
         } catch {
           // If response is not JSON, use default message
+        }
+
+        // Handle token expiration/unauthorized access (but not for auth endpoints)
+        if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/verify')) {
+          await this.handleUnauthorized()
         }
 
         throw new ApiError(response.status, errorMessage, errorCode)
@@ -177,6 +193,63 @@ export class ApiClient {
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>({ endpoint, method: 'DELETE' })
   }
+
+  /**
+   * Handle unauthorized responses (401)
+   * Attempts token refresh or forces logout
+   */
+  private async handleUnauthorized(): Promise<void> {
+    if (typeof window === 'undefined') return // Skip on server-side
+
+    try {
+      // Import store and authSlice dynamically to avoid circular dependencies
+      const [{ store }, { resetAuth }] = await Promise.all([import('@/store'), import('@/shared/store/authSlice')])
+
+      const state = store.getState()
+      const refreshToken = state.auth.refreshToken
+
+      // Try to refresh token if available
+      if (refreshToken) {
+        try {
+          const { AuthService } = await import('@/shared/services/authService')
+          const refreshResult = await AuthService.refreshToken(refreshToken)
+
+          // Update tokens in store
+          const { setTokens } = await import('@/shared/store/authSlice')
+          store.dispatch(
+            setTokens({
+              accessToken: refreshResult.access_token,
+              refreshToken: refreshResult.refresh_token || refreshToken
+            })
+          )
+
+          return // Token refreshed successfully
+        } catch (refreshError) {
+          // Refresh failed, continue to logout
+          console.warn('Token refresh failed:', refreshError)
+        }
+      }
+
+      // Clear auth state and redirect to login
+      store.dispatch(resetAuth())
+
+      // Clear localStorage as fallback
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('userData')
+
+      // Redirect to login only if not already there
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login?reason=session_expired'
+      }
+    } catch (error) {
+      console.error('Error handling unauthorized response:', error)
+      // Fallback: force reload to login
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login?reason=error'
+      }
+    }
+  }
 }
 
 // API Configuration
@@ -185,19 +258,30 @@ const isClient = typeof window !== 'undefined'
 
 export const API_CONFIG = {
   // Use proxy in development to avoid CORS, direct URL in production
-  BASE_URL: isDevelopment && isClient ? '/api' : process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',
+  BASE_URL:
+    isDevelopment && isClient ? '/api' : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api`,
 
   ENDPOINTS: {
     AUTH: {
-      LOGIN: '/auth/authentication',
-      VERIFY: '/auth/verify',
+      LOGIN: '/auth/login',
+      VERIFY: '/auth/verify-2fa',
       LOGOUT: '/auth/logout',
       REFRESH: '/auth/refresh',
       PROFILE: '/auth/profile'
     },
     PEI: {
-      UNIT_MERGE: '/pei/unit-merge',
       PERIOD_NAME: '/pei/period-name'
+    },
+    ADMIN: {
+      ROLES: '/roles',
+      ROLES_SAVE: '/roles/save',
+      PERMISSIONS: '/permissions'
+    },
+    PURCHASE: {
+      LIST: '/purchases',
+      SAVE: '/purchases/save',
+      DELETE: '/purchases',
+      SUPPLIERS: '/suppliers-all'
     }
   }
 }

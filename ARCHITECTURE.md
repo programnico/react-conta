@@ -6,12 +6,7 @@
 src/
 ├── features/                    # 🎯 Módulos de negocio independientes
 │   └── general/                # Módulo General (catálogos, configuraciones)
-│       └── unit-merge/        # Feature: Unit Merge CRUD
-│           ├── components/    # Componentes específicos del feature
-│           ├── hooks/        # Hooks personalizados del feature
-│           ├── services/     # Servicios API del feature
-│           ├── store/        # Estado Redux específico (futuro)
-│           └── types/        # Tipos TypeScript del feature
+│       └── [future-features]  # Features de catálogos y configuraciones
 │
 ├── shared/                     # 🔧 Código compartido entre módulos
 │   ├── components/           # Componentes reutilizables
@@ -25,7 +20,7 @@ src/
     └── (modules)/           # Rutas modulares
         └── general/
             └── catalogs/
-                └── unit-merge/page.tsx
+                └── [catalog-pages]   # Páginas de catálogos
 ```
 
 ## 🔄 Patrones Implementados
@@ -69,9 +64,9 @@ export const apiClient = new ApiClient({
 ### Service Layer
 
 ```typescript
-// features/general/unit-merge/services/unitMergeService.ts
-class UnitMergeService extends BaseCrudService<UnitMerge, CreateUnitMergeRequest, UpdateUnitMergeRequest> {
-  protected endpoint = '/pei/unit-merge'
+// Ejemplo de implementación de servicio
+class CatalogService extends BaseCrudService<CatalogItem, CreateRequest, UpdateRequest> {
+  protected endpoint = '/catalog-endpoint'
 
   constructor() {
     super({ useFormData: true })
@@ -82,15 +77,15 @@ class UnitMergeService extends BaseCrudService<UnitMerge, CreateUnitMergeRequest
 ### Hook Layer
 
 ```typescript
-// features/general/unit-merge/hooks/useUnitMerge.ts
-export const useUnitMerge = (options?) => {
-  const crud = useCrud(unitMergeService, options)
+// Ejemplo de hook personalizado
+export const useCatalog = (options?) => {
+  const crud = useCrud(catalogService, options)
 
   return {
     ...crud,
     // Domain-specific helpers
     activeItems: crud.data.filter(item => item.status === 'active'),
-    searchByName: query => unitMergeService.searchByName(query)
+    searchByName: query => catalogService.searchByName(query)
   }
 }
 ```
@@ -98,9 +93,9 @@ export const useUnitMerge = (options?) => {
 ### Page Component
 
 ```typescript
-// app/(modules)/general/catalogs/unit-merge/page.tsx
-const UnitMergePage = () => {
-  const { items, isLoading, createItem, updateItem, deleteItem } = useUnitMerge({ autoLoad: true })
+// Ejemplo de componente de página
+const CatalogPage = () => {
+  const { items, isLoading, createItem, updateItem, deleteItem } = useCatalog({ autoLoad: true })
 
   // Component logic...
 }
@@ -177,7 +172,7 @@ const NewFeaturePage = () => {
 
 ## 🎯 Próximos Pasos
 
-1. **Migrar UnitMerge Redux** → Hook-based (completado)
+1. **Implementar nuevos módulos de catálogos**
 2. **Agregar módulos Purchase, Accounting, Administration**
 3. **Implementar cache strategies**
 4. **Agregar validaciones con Zod**
