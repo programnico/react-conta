@@ -1,0 +1,209 @@
+/* Estilos para el menú lateral colapsado */
+
+/* Cuando el menú está colapsado */
+.ts-collapsed {
+  /* PASO 1: Ocultar completamente el texto del menú */
+  .menu-item-text,
+  .MuiListItemText-root,
+  .MuiListItemText-root *,
+  .MuiListItemText-primary,
+  .MuiTypography-root:not(.MuiSvgIcon-root) {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* PASO 2: FORZAR VISIBILIDAD ABSOLUTA de todos los iconos */
+  .MuiListItemIcon-root {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+    margin: 0 !important;
+  }
+
+  .MuiListItemIcon-root i,
+  .MuiListItemIcon-root *,
+  i[class*='ri-'],
+  [class*='ri-'] {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+    font-size: 20px !important;
+    color: inherit !important;
+    line-height: 1 !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  /* Ajustar padding de los botones del menú */
+  .MuiListItemButton-root {
+    justify-content: center !important;
+    align-items: center !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    display: flex !important;
+    min-height: 48px !important;
+  }
+
+  /* Ocultar flechas de expansión */
+  .ri-arrow-right-s-line,
+  .MuiCollapse-root {
+    display: none !important;
+  }
+
+  /* Ajustar logo y header - MANTENER LOGO VISIBLE */
+  .ts-vertical-nav-header {
+    justify-content: center;
+    padding: 12px 8px;
+
+    /* Mantener el logo visible pero más pequeño */
+    img {
+      width: 40px !important;
+      height: 32px !important;
+    }
+
+    /* Solo ocultar el texto del logo, no el logo mismo */
+    span {
+      opacity: 0;
+      visibility: hidden;
+      width: 0;
+      overflow: hidden;
+      transition: all 0.3s ease-in-out;
+    }
+  }
+
+  /* Ocultar texto en elementos del menú custom */
+  .menu-label,
+  .menu-text {
+    display: none !important;
+  }
+
+  /* HOVER EFFECT: Expandir temporalmente al hacer hover */
+  &:hover {
+    inline-size: 260px !important;
+    min-inline-size: 260px !important;
+
+    /* Mostrar el texto al hacer hover */
+    .menu-item-text,
+    .MuiListItemText-root,
+    .MuiListItemText-root *,
+    .MuiListItemText-primary,
+    .MuiTypography-root:not(.MuiSvgIcon-root) {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      width: auto !important;
+      overflow: visible !important;
+    }
+
+    /* Mostrar texto del logo al hacer hover */
+    .ts-vertical-nav-header span {
+      opacity: 1 !important;
+      visibility: visible !important;
+      width: auto !important;
+    }
+
+    /* Restaurar padding normal de los botones */
+    .MuiListItemButton-root {
+      justify-content: flex-start !important;
+      padding-left: 22px !important;
+      padding-right: 14px !important;
+    }
+
+    /* Restaurar margin de iconos */
+    .MuiListItemIcon-root {
+      justify-content: flex-start !important;
+      margin-right: 12px !important;
+      min-width: 24px !important;
+    }
+
+    /* Mostrar flechas de expansión */
+    .ri-arrow-right-s-line {
+      display: block !important;
+    }
+
+    /* Restaurar logo normal */
+    .ts-vertical-nav-header img {
+      width: 65px !important;
+      height: 40px !important;
+    }
+
+    /* Asegurar que el contenido del menú sea visible */
+    .menu-label,
+    .menu-text {
+      display: inline !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+  }
+}
+
+/* Animación suave para la transición */
+.ts-vertical-nav-root {
+  transition:
+    inline-size 0.3s ease-in-out,
+    min-inline-size 0.3s ease-in-out;
+}
+
+/* Solo aplicar transiciones específicas para evitar conflictos */
+.ts-vertical-nav-root .MuiListItemButton-root {
+  transition:
+    padding 0.2s ease-in-out,
+    justify-content 0.2s ease-in-out;
+}
+
+.ts-vertical-nav-root .MuiListItemIcon-root {
+  transition:
+    margin 0.2s ease-in-out,
+    min-width 0.2s ease-in-out;
+}
+
+/* Mejoras adicionales para el hover */
+.ts-collapsed {
+  /* Transición más rápida en hover */
+  transition:
+    inline-size 0.2s ease-out,
+    min-inline-size 0.2s ease-out;
+
+  /* Sombra sutil cuando está colapsado */
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tooltip personalizado para elementos colapsados */
+.ts-collapsed .MuiListItemButton-root {
+  position: relative;
+}
+
+.ts-collapsed .MuiListItemButton-root:not(:hover)::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 1000;
+  margin-left: 8px;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease-in-out,
+    visibility 0.2s ease-in-out;
+}
+
+.ts-collapsed .MuiListItemButton-root:hover:not(:hover)::after {
+  opacity: 1;
+  visibility: visible;
+}

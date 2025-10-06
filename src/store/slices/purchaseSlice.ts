@@ -1,13 +1,9 @@
 // store/slices/purchaseSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import type { PayloadAction } from '@reduxjs/toolkit'
+
 import { purchaseService } from '@/features/purchase/services/purchaseService'
-import type {
-  Purchase,
-  PurchasesApiResponse,
-  CreatePurchaseRequest,
-  PurchaseFilters,
-  PurchaseStats
-} from '@/features/purchase/types'
+import type { Purchase, PurchasesApiResponse, CreatePurchaseRequest, PurchaseFilters } from '@/features/purchase/types'
 
 // Async thunks
 export const fetchPurchases = createAsyncThunk(

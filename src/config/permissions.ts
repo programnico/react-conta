@@ -41,13 +41,13 @@ export const PERMISSIONS = {
   },
 
   // Permisos de catálogos generales
-  CATALOGS: {
-    VIEW: 'catalogs:view',
-    CREATE: 'catalogs:create',
-    EDIT: 'catalogs:edit',
-    DELETE: 'catalogs:delete',
-    PERIOD_NAME: 'catalogs:period-name'
-  },
+  // CATALOGS: {
+  //   VIEW: 'catalogs:view',
+  //   CREATE: 'catalogs:create',
+  //   EDIT: 'catalogs:edit',
+  //   DELETE: 'catalogs:delete',
+  //   PERIOD_NAME: 'catalogs:period-name'
+  // },
 
   // Permisos de compras
   PURCHASES: {
@@ -65,6 +65,14 @@ export const PERMISSIONS = {
     EDIT: 'suppliers:edit',
     DELETE: 'suppliers:delete',
     MANAGE: 'suppliers:manage'
+  },
+
+  PRODUCTS: {
+    VIEW: 'products:view',
+    CREATE: 'products:create',
+    EDIT: 'products:edit',
+    DELETE: 'products:delete',
+    MANAGE: 'products:manage'
   }
 } as const
 
@@ -92,9 +100,10 @@ export const ROLES = {
       ...Object.values(PERMISSIONS.USERS),
       ...Object.values(PERMISSIONS.SETTINGS),
       ...Object.values(PERMISSIONS.FORMS),
-      ...Object.values(PERMISSIONS.CATALOGS),
+      //...Object.values(PERMISSIONS.CATALOGS),
       ...Object.values(PERMISSIONS.PURCHASES),
-      ...Object.values(PERMISSIONS.SUPPLIERS)
+      ...Object.values(PERMISSIONS.SUPPLIERS),
+      ...Object.values(PERMISSIONS.PRODUCTS)
     ]
   },
   USER: {
@@ -108,7 +117,10 @@ export const ROLES = {
       PERMISSIONS.SETTINGS.ACCOUNT,
       PERMISSIONS.PURCHASES.VIEW,
       PERMISSIONS.SUPPLIERS.VIEW,
-      PERMISSIONS.PURCHASES.CREATE
+      PERMISSIONS.PURCHASES.CREATE,
+      PERMISSIONS.PRODUCTS.VIEW,
+      PERMISSIONS.PRODUCTS.CREATE,
+      PERMISSIONS.PRODUCTS.EDIT
     ]
   },
   GUEST: {

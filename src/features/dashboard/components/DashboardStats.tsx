@@ -16,7 +16,7 @@ const DashboardStats = () => {
             <Box display='flex' justifyContent='space-between' alignItems='center'>
               <Box>
                 <Typography variant='h4' component='h1' gutterBottom>
-                  🎉 ¡Bienvenido al Dashboard!
+                  🎉 ¡Bienvenido al Dashboard! Archivo modificado poor nicolas
                 </Typography>
                 <Typography variant='h6' color='text.secondary' gutterBottom>
                   Sistema de autenticación profesional funcionando correctamente
@@ -37,7 +37,7 @@ const DashboardStats = () => {
         <Card>
           <CardContent>
             <Typography variant='h6' gutterBottom>
-              📊 Total de Permisos
+              Total de Permisos
             </Typography>
             <Typography variant='h3' color='primary'>
               {userPermissions.length}
@@ -53,11 +53,11 @@ const DashboardStats = () => {
         <Card>
           <CardContent>
             <Typography variant='h6' gutterBottom>
-              🛡️ Nivel de Acceso
+              Nivel de Acceso
             </Typography>
-            <Typography variant='h3' color='success.main'>
+            {/* <Typography variant='h3' color='success.main'>
               {userRole}
-            </Typography>
+            </Typography> */}
             <Typography variant='body2' color='text.secondary'>
               Tu rol actual en el sistema
             </Typography>
@@ -69,7 +69,7 @@ const DashboardStats = () => {
         <Card>
           <CardContent>
             <Typography variant='h6' gutterBottom>
-              ✅ Estado
+              Estado
             </Typography>
             <Typography variant='h3' color='success.main'>
               Activo

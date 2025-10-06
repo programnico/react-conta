@@ -9,6 +9,7 @@ import type { ChildrenType } from '../types'
 export type VerticalNavState = {
   width?: number
   isToggled?: boolean
+  isCollapsed?: boolean
   isBreakpointReached?: boolean
   transitionDuration?: number
 }
@@ -16,6 +17,7 @@ export type VerticalNavState = {
 export type VerticalNavContextProps = VerticalNavState & {
   updateVerticalNavState: (values: VerticalNavState) => void
   toggleVerticalNav: (value?: VerticalNavState['isToggled']) => void
+  toggleCollapsedNav: (value?: VerticalNavState['isCollapsed']) => void
 }
 
 const VerticalNavContext = createContext({} as VerticalNavContextProps)
@@ -39,13 +41,21 @@ export const VerticalNavProvider = ({ children }: ChildrenType) => {
     }))
   }, [])
 
+  const toggleCollapsedNav = useCallback((value?: boolean) => {
+    setVerticalNavState(prevState => ({
+      ...prevState,
+      isCollapsed: value !== undefined ? Boolean(value) : !Boolean(prevState?.isCollapsed)
+    }))
+  }, [])
+
   const verticalNavProviderValue = useMemo(
     () => ({
       ...verticalNavState,
       updateVerticalNavState,
-      toggleVerticalNav
+      toggleVerticalNav,
+      toggleCollapsedNav
     }),
-    [verticalNavState, updateVerticalNavState, toggleVerticalNav]
+    [verticalNavState, updateVerticalNavState, toggleVerticalNav, toggleCollapsedNav]
   )
 
   return <VerticalNavContext.Provider value={verticalNavProviderValue}>{children}</VerticalNavContext.Provider>

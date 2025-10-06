@@ -1,5 +1,7 @@
 // store/slices/supplierSlice.ts
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import type { PayloadAction } from '@reduxjs/toolkit'
+
 import { supplierService } from '@/features/supplier/services/supplierService'
 import type { Supplier, SuppliersApiResponse, CreateSupplierRequest, SupplierFilters } from '@/features/supplier/types'
 

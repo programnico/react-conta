@@ -27,5 +27,6 @@ export const verticalNavClasses = {
   header: 'ts-vertical-nav-header',
   backdrop: 'ts-vertical-nav-backdrop',
   toggled: 'ts-toggled',
+  collapsed: 'ts-collapsed',
   breakpointReached: 'ts-breakpoint-reached'
 }

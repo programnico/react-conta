@@ -1,5 +1,5 @@
-// Component Imports
-import UnderMaintenance from '@views/pages/misc/UnderMaintenance'
+// Feature Imports
+import { UnderMaintenancePage as UnderMaintenanceComponent } from '@/features/pages'
 
 // Server Action Imports
 import { getServerMode } from '@core/utils/serverHelpers'
@@ -8,7 +8,7 @@ const UnderMaintenancePage = () => {
   // Vars
   const mode = getServerMode()
 
-  return <UnderMaintenance mode={mode} />
+  return <UnderMaintenanceComponent mode={mode} />
 }
 
 export default UnderMaintenancePage

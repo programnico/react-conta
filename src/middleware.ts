@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server'
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Solo permitir archivos estáticos y API routes, todo lo demás se maneja en el cliente
+  // Permitir archivos estáticos, API routes y páginas públicas
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
@@ -14,7 +14,28 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Permitir todas las rutas - la protección se hace en el cliente con AuthGuard
+  // Rutas públicas que no requieren autenticación
+  const publicRoutes = ['/login', '/register', '/forgot-password', '/']
+
+  if (publicRoutes.includes(pathname)) {
+    return NextResponse.next()
+  }
+
+  // TEMPORAL: Desactivar validación del middleware
+  // El sistema actual usa localStorage + Redux, no cookies
+  // La protección real se hace con AuthGuard en cada página
+
+  // TODO: Implementar validación de cookies cuando se migre el token storage
+  // const token = request.cookies.get('auth_token')?.value ||
+  //               request.cookies.get('accessToken')?.value ||
+  //               request.headers.get('authorization')?.replace('Bearer ', '')
+
+  // if (!token) {
+  //   const loginUrl = new URL('/login', request.url)
+  //   loginUrl.searchParams.set('redirect', pathname)
+  //   return NextResponse.redirect(loginUrl)
+  // }
+
   return NextResponse.next()
 }
 

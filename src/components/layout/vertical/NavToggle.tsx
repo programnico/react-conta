@@ -5,17 +5,23 @@ import useVerticalNav from '@menu/hooks/useVerticalNav'
 
 const NavToggle = () => {
   // Hooks
-  const { toggleVerticalNav, isBreakpointReached } = useVerticalNav()
+  const { toggleVerticalNav, toggleCollapsedNav, isBreakpointReached } = useVerticalNav()
 
   const handleClick = () => {
-    toggleVerticalNav()
+    if (isBreakpointReached) {
+      // En móviles, ocultar completamente el menú
+      toggleVerticalNav()
+    } else {
+      // En desktop, solo colapsar (mostrar iconos)
+      toggleCollapsedNav()
+    }
   }
 
   return (
     <>
-      {/* <i className='ri-menu-line text-xl cursor-pointer' onClick={handleClick} /> */}
+      <i className='ri-menu-line text-xl cursor-pointer' onClick={handleClick} />
       {/* Comment following code and uncomment above code in order to toggle menu on desktop screens as well */}
-      {isBreakpointReached && <i className='ri-menu-line text-xl cursor-pointer' onClick={handleClick} />}
+      {/* {isBreakpointReached && <i className='ri-menu-line text-xl cursor-pointer' onClick={handleClick} />} */}
     </>
   )
 }

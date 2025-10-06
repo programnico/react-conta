@@ -11,25 +11,18 @@ export const ROUTES = {
     NOT_FOUND: '/404'
   },
 
-  // Rutas protegidas (requieren autenticación)
+  // Rutas protegidas (requieren autenticación) - Todas bajo (modules) para layout compartido
   PROTECTED: {
-    DASHBOARD: '/dashboard',
-    USERS: '/dashboard/users',
-    USER_PROFILE: '/dashboard/users/profile',
-    ACCOUNT_SETTINGS: '/dashboard/account-settings',
-    ACCOUNT_DETAILS: '/dashboard/account-settings/account',
-    NOTIFICATIONS: '/dashboard/account-settings/notifications',
-    FORM_LAYOUTS: '/dashboard/form-layouts',
-    FORM_BASIC: '/dashboard/form-layouts/basic',
-    FORM_ICONS: '/dashboard/form-layouts/icons',
-    CARD_BASIC: '/dashboard/card-basic',
+    DASHBOARD: '/dashboard', // Ruta: (modules)/dashboard
     // General - Catálogos
-    GENERAL_CATALOGS: '/general/catalogs',
-    PERIOD_NAME: '/general/catalogs/period-name',
+    GENERAL_CATALOGS: '/general/catalogs', // Ruta: (modules)/general/catalogs
+    //PERIOD_NAME: '/general/catalogs/period-name',
     // Purchase Module
-    PURCHASES: '/purchase',
+    PURCHASES: '/purchase', // Ruta: (modules)/purchase
     // Suppliers Module
-    SUPPLIERS: '/suppliers'
+    SUPPLIERS: '/suppliers', // Ruta: (modules)/suppliers
+    // Products Module
+    PRODUCTS: '/products' // Ruta: (modules)/products
   }
 } as const
 
@@ -61,40 +54,6 @@ export const ROUTE_CONFIG = {
     showInMenu: true,
     icon: 'ri-dashboard-line'
   },
-  [ROUTES.PROTECTED.USERS]: {
-    public: false,
-    title: 'Usuarios',
-    permissions: [PERMISSIONS.USERS.VIEW],
-    showInMenu: true,
-    icon: 'ri-user-line'
-  },
-  [ROUTES.PROTECTED.USER_PROFILE]: {
-    public: false,
-    title: 'Mi Perfil',
-    permissions: [PERMISSIONS.USERS.VIEW_PROFILE],
-    showInMenu: false
-  },
-  [ROUTES.PROTECTED.ACCOUNT_SETTINGS]: {
-    public: false,
-    title: 'Configuración de Cuenta',
-    permissions: [PERMISSIONS.SETTINGS.ACCOUNT],
-    showInMenu: true,
-    icon: 'ri-settings-line'
-  },
-  [ROUTES.PROTECTED.FORM_LAYOUTS]: {
-    public: false,
-    title: 'Formularios',
-    permissions: [PERMISSIONS.FORMS.VIEW],
-    showInMenu: true,
-    icon: 'ri-file-text-line'
-  },
-  [ROUTES.PROTECTED.CARD_BASIC]: {
-    public: false,
-    title: 'Tarjetas',
-    permissions: [PERMISSIONS.DASHBOARD.VIEW],
-    showInMenu: true,
-    icon: 'ri-layout-card-line'
-  },
   // General - Catálogos
   [ROUTES.PROTECTED.GENERAL_CATALOGS]: {
     public: false,
@@ -104,13 +63,13 @@ export const ROUTE_CONFIG = {
     icon: 'ri-folder-line'
   },
 
-  [ROUTES.PROTECTED.PERIOD_NAME]: {
-    public: false,
-    title: 'Period Name',
-    permissions: [PERMISSIONS.USERS.VIEW],
-    showInMenu: true,
-    icon: 'ri-calendar-line'
-  },
+  // [ROUTES.PROTECTED.PERIOD_NAME]: {
+  //   public: false,
+  //   title: 'Period Name',
+  //   permissions: [PERMISSIONS.USERS.VIEW],
+  //   showInMenu: true,
+  //   icon: 'ri-calendar-line'
+  // },
 
   [ROUTES.PROTECTED.PURCHASES]: {
     public: false,
@@ -126,6 +85,14 @@ export const ROUTE_CONFIG = {
     permissions: [PERMISSIONS.SUPPLIERS.VIEW],
     showInMenu: true,
     icon: 'ri-building-line'
+  },
+
+  [ROUTES.PROTECTED.PRODUCTS]: {
+    public: false,
+    title: 'Gestión de Productos',
+    permissions: [PERMISSIONS.PRODUCTS.VIEW],
+    showInMenu: true,
+    icon: 'ri-box-3-line'
   }
 } as const
 

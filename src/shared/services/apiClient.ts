@@ -269,9 +269,6 @@ export const API_CONFIG = {
       REFRESH: '/auth/refresh',
       PROFILE: '/auth/profile'
     },
-    PEI: {
-      PERIOD_NAME: '/pei/period-name'
-    },
     ADMIN: {
       ROLES: '/roles',
       ROLES_SAVE: '/roles/save',

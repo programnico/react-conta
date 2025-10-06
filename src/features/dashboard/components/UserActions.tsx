@@ -32,26 +32,26 @@ const UserActions = () => {
         </Typography>
 
         <Box display='flex' flexDirection='column' gap={2}>
-          {/* Profile Link */}
-          {hasPermission(PERMISSIONS.USERS.VIEW_PROFILE) && (
+          {/* Profile Link - Commented out until pages are created */}
+          {/* {hasPermission(PERMISSIONS.USERS.VIEW_PROFILE) && (
             <Link href={ROUTES.PROTECTED.USER_PROFILE} style={{ textDecoration: 'none' }}>
               <Button fullWidth variant='outlined' startIcon={<PersonIcon />} sx={{ justifyContent: 'flex-start' }}>
                 Ver mi Perfil
               </Button>
             </Link>
-          )}
+          )} */}
 
-          {/* Settings Link */}
-          {hasPermission(PERMISSIONS.SETTINGS.VIEW) && (
+          {/* Settings Link - Commented out until pages are created */}
+          {/* {hasPermission(PERMISSIONS.SETTINGS.VIEW) && (
             <Link href={ROUTES.PROTECTED.ACCOUNT_SETTINGS} style={{ textDecoration: 'none' }}>
               <Button fullWidth variant='outlined' startIcon={<SettingsIcon />} sx={{ justifyContent: 'flex-start' }}>
                 Configuración de Cuenta
               </Button>
             </Link>
-          )}
+          )} */}
 
-          {/* Change Password */}
-          {hasPermission(PERMISSIONS.AUTH.CHANGE_PASSWORD) && (
+          {/* Change Password - Commented out until implemented */}
+          {/* {hasPermission(PERMISSIONS.AUTH.CHANGE_PASSWORD) && (
             <Button
               fullWidth
               variant='outlined'
@@ -61,7 +61,7 @@ const UserActions = () => {
             >
               Cambiar Contraseña
             </Button>
-          )}
+          )} */}
 
           <Divider />
 

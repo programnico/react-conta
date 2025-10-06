@@ -64,6 +64,7 @@ const VerticalNav = (props: VerticalNavProps) => {
     width: widthContext,
     isBreakpointReached: isBreakpointReachedContext,
     isToggled: isToggledContext,
+    isCollapsed: isCollapsedContext,
     transitionDuration: transitionDurationContext
   } = useVerticalNav()
 
@@ -100,6 +101,7 @@ const VerticalNav = (props: VerticalNavProps) => {
         verticalNavClasses.root,
         {
           [verticalNavClasses.toggled]: isToggledContext,
+          [verticalNavClasses.collapsed]: isCollapsedContext,
           [verticalNavClasses.breakpointReached]: isBreakpointReachedContext
         },
         className

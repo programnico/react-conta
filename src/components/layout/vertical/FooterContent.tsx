@@ -21,20 +21,20 @@ const FooterContent = () => {
       className={classnames(verticalLayoutClasses.footerContent, 'flex items-center justify-between flex-wrap gap-4')}
     >
       <p>
-        <span>{`© ${new Date().getFullYear()}, Made with `}</span>
-        <span>{` by `}</span>
+        {/* <span>{`© ${new Date().getFullYear()}, Made with `}</span> */}
+        {/* <span>{` by `}</span>
         <Link href='https://themeselection.com' target='_blank' className='text-primary'>
           ThemeSelection
-        </Link>
+        </Link> */}
       </p>
       {!isBreakpointReached && (
         <div className='flex items-center gap-4'>
           <Link href='https://themeselection.com/license' target='_blank' className='text-primary'>
             License
           </Link>
-          <Link href='https://themeselection.com' target='_blank' className='text-primary'>
+          {/* <Link href='https://themeselection.com' target='_blank' className='text-primary'>
             More Themes
-          </Link>
+          </Link> */}
           <Link href={process.env.NEXT_PUBLIC_DOCS_URL || '#'} target='_blank' className='text-primary'>
             Documentation
           </Link>

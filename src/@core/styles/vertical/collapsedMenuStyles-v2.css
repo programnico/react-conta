@@ -1,0 +1,235 @@
+/* Estilos simplificados para menú colapsado - Versión depurada */
+
+.ts-collapsed {
+  /* ANCHO COLAPSADO */
+  inline-size: 80px !important;
+  min-inline-size: 80px !important;
+
+  /* BOTONES DEL MENÚ - Centrados */
+  .MuiListItemButton-root {
+    justify-content: center !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  /* ICONOS - Siempre visibles y centrados */
+  .MuiListItemIcon-root {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    min-width: 40px !important;
+    margin: 0 !important;
+  }
+
+  /* ICONOS ESPECÍFICOS - Forzar visibilidad */
+  i[class*='ri-'],
+  .MuiListItemIcon-root i {
+    display: inline-block !important;
+    font-size: 20px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: currentColor !important;
+  }
+
+  /* TEXTO - Ocultar completamente */
+  .menu-item-text,
+  .MuiListItemText-root {
+    display: none !important;
+  }
+
+  /* HEADER DEL LOGO - Área fija sin cambios de tamaño */
+  .ts-vertical-nav-header {
+    /* MANTENER ÁREA FIJA - No cambiar dimensiones */
+    min-height: 70px !important;
+    height: 70px !important;
+    padding: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    overflow: hidden !important;
+    /* NO cambiar el width - mantener área constante */
+  }
+
+  /* CONTENEDOR DEL LOGO - Centrar contenido dentro del área fija */
+  .ts-vertical-nav-header > div {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: justify-content 0.3s ease-in-out !important;
+  }
+
+  /* LOGO - Reducir tamaño pero mantener área */
+  .ts-vertical-nav-header img {
+    width: 35px !important;
+    height: 28px !important;
+    transition:
+      width 0.3s ease-in-out,
+      height 0.3s ease-in-out !important;
+  }
+
+  /* TEXTO DEL LOGO - Ocultar con transición suave */
+  .ts-vertical-nav-header span {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    margin-left: 0 !important;
+    transition:
+      opacity 0.3s ease-in-out,
+      visibility 0.3s ease-in-out,
+      width 0.3s ease-in-out,
+      margin 0.3s ease-in-out !important;
+  }
+
+  /* ==== HOVER FUNCIONAL - Restaurar funcionalidad básica ==== */
+  &:hover {
+    inline-size: 260px !important;
+    min-inline-size: 260px !important;
+
+    /* Restaurar botones */
+    .MuiListItemButton-root {
+      justify-content: flex-start !important;
+      padding-left: 22px !important;
+      padding-right: 14px !important;
+    }
+
+    /* Restaurar iconos */
+    .MuiListItemIcon-root {
+      justify-content: flex-start !important;
+      margin-right: 12px !important;
+      min-width: 24px !important;
+    }
+
+    /* Mostrar texto */
+    .menu-item-text,
+    .MuiListItemText-root {
+      display: block !important;
+    }
+
+    /* HOVER - Restaurar logo con área fija */
+    .ts-vertical-nav-header > div {
+      justify-content: flex-start !important;
+    }
+
+    .ts-vertical-nav-header img {
+      width: 50px !important;
+      height: 35px !important;
+      margin-right: 12px !important;
+    }
+
+    .ts-vertical-nav-header span {
+      opacity: 1 !important;
+      visibility: visible !important;
+      width: auto !important;
+      margin-left: 8px !important;
+    }
+  }
+}
+
+/* ==== ESTADO EXPANDIDO (NORMAL) ==== */
+/* Cuando el menú NO está colapsado */
+.ts-vertical-nav-root:not(.ts-collapsed) {
+  /* HEADER DEL LOGO - Misma área fija que en colapsado */
+  .ts-vertical-nav-header {
+    min-height: 70px !important;
+    height: 70px !important;
+    padding: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+  }
+
+  /* CONTENEDOR EN ESTADO EXPANDIDO */
+  .ts-vertical-nav-header > div {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+  }
+
+  /* LOGO EN ESTADO EXPANDIDO */
+  .ts-vertical-nav-header img {
+    width: 50px !important;
+    height: 35px !important;
+    margin-right: 12px !important;
+  }
+
+  /* TEXTO DEL LOGO EN ESTADO EXPANDIDO */
+  .ts-vertical-nav-header span {
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: auto !important;
+    margin-left: 8px !important;
+    font-size: 1.4rem !important;
+    font-weight: 600 !important;
+    color: var(--mui-palette-text-primary) !important;
+  }
+}
+
+/* TRANSICIONES SUAVES */
+.ts-vertical-nav-root {
+  transition:
+    inline-size 0.3s ease-in-out,
+    min-inline-size 0.3s ease-in-out;
+}
+
+.ts-collapsed {
+  transition:
+    inline-size 0.2s ease-out,
+    min-inline-size 0.2s ease-out;
+}
+
+/* TRANSICIONES PARA EL LOGO */
+.ts-vertical-nav-header img,
+.ts-vertical-nav-header span,
+.ts-vertical-nav-header > div {
+  transition: all 0.3s ease-in-out !important;
+}
+
+/* ==== HOVER CONTROLADO POR JAVASCRIPT ==== */
+
+/* Clase aplicada por JavaScript cuando hover está en navegación (NO en header) */
+.ts-collapsed.hover-expand {
+  inline-size: 260px !important;
+  min-inline-size: 260px !important;
+
+  /* Restaurar botones */
+  .MuiListItemButton-root {
+    justify-content: flex-start !important;
+    padding-left: 22px !important;
+    padding-right: 14px !important;
+  }
+
+  /* Restaurar iconos */
+  .MuiListItemIcon-root {
+    justify-content: flex-start !important;
+    margin-right: 12px !important;
+    min-width: 24px !important;
+  }
+
+  /* Mostrar texto */
+  .menu-item-text,
+  .MuiListItemText-root {
+    display: block !important;
+  }
+
+  /* HOVER - Restaurar logo con área fija */
+  .ts-vertical-nav-header > div {
+    justify-content: flex-start !important;
+  }
+
+  .ts-vertical-nav-header img {
+    width: 50px !important;
+    height: 35px !important;
+    margin-right: 12px !important;
+  }
+
+  .ts-vertical-nav-header span {
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: auto !important;
+    margin-left: 8px !important;
+  }
+}

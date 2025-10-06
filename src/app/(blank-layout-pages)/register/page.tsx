@@ -1,5 +1,5 @@
-// Component Imports
-import Register from '@views/Register'
+// Feature Imports
+// import { RegisterForm } from '@/features/auth'
 
 // Server Action Imports
 import { getServerMode } from '@core/utils/serverHelpers'
@@ -8,7 +8,7 @@ const RegisterPage = () => {
   // Vars
   const mode = getServerMode()
 
-  return <Register mode={mode} />
+  return <RegisterForm mode={mode} />
 }
 
 export default RegisterPage

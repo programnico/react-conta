@@ -44,6 +44,10 @@ const StyledVerticalNav = styled.aside<StyledVerticalNavProps>`
     &.${verticalNavClasses.toggled} {
       margin-inline-start: -${width}px;
     }
+    &.${verticalNavClasses.collapsed} {
+      inline-size: 80px;
+      min-inline-size: 80px;
+    }
   `}
 
   /* User Styles */

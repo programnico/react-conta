@@ -11,10 +11,12 @@ const LoginPage = () => {
   const router = useRouter()
   const { isAuthenticated } = useAppSelector(state => state.auth)
 
-  // Si ya está autenticado, redirigir al dashboard
+  // Si ya está autenticado, redirigir usando el parámetro redirect o al dashboard
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/dashboard')
+      const searchParams = new URLSearchParams(window.location.search)
+      const redirect = searchParams.get('redirect') || '/dashboard'
+      router.replace(redirect)
     }
   }, [isAuthenticated, router])
 

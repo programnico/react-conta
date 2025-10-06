@@ -23,56 +23,56 @@ export const MENU_CONFIG: MenuItem[] = [
     showInMenu: true,
     order: 1
   },
-  {
-    id: 'users',
-    label: 'Gestión de Usuarios',
-    path: ROUTES.PROTECTED.USERS,
-    icon: 'ri-user-line',
-    permissions: [PERMISSIONS.USERS.VIEW],
-    showInMenu: true,
-    order: 2,
-    children: [
-      {
-        id: 'users-list',
-        label: 'Lista de Usuarios',
-        path: ROUTES.PROTECTED.USERS,
-        permissions: [PERMISSIONS.USERS.VIEW],
-        showInMenu: true
-      },
-      {
-        id: 'users-profile',
-        label: 'Mi Perfil',
-        path: ROUTES.PROTECTED.USER_PROFILE,
-        permissions: [PERMISSIONS.USERS.VIEW_PROFILE],
-        showInMenu: true
-      }
-    ]
-  },
-  {
-    id: 'forms',
-    label: 'Formularios',
-    path: ROUTES.PROTECTED.FORM_LAYOUTS,
-    icon: 'ri-file-text-line',
-    permissions: [PERMISSIONS.FORMS.VIEW],
-    showInMenu: true,
-    order: 3,
-    children: [
-      {
-        id: 'form-basic',
-        label: 'Formularios Básicos',
-        path: ROUTES.PROTECTED.FORM_BASIC,
-        permissions: [PERMISSIONS.FORMS.VIEW],
-        showInMenu: true
-      },
-      {
-        id: 'form-icons',
-        label: 'Formularios con Iconos',
-        path: ROUTES.PROTECTED.FORM_ICONS,
-        permissions: [PERMISSIONS.FORMS.VIEW],
-        showInMenu: true
-      }
-    ]
-  },
+  // {
+  //   id: 'users',
+  //   label: 'Gestión de Usuarios',
+  //   path: ROUTES.PROTECTED.USERS,
+  //   icon: 'ri-user-line',
+  //   permissions: [PERMISSIONS.USERS.VIEW],
+  //   showInMenu: true,
+  //   order: 2,
+  //   children: [
+  //     {
+  //       id: 'users-list',
+  //       label: 'Lista de Usuarios',
+  //       path: ROUTES.PROTECTED.USERS,
+  //       permissions: [PERMISSIONS.USERS.VIEW],
+  //       showInMenu: true
+  //     },
+  //     {
+  //       id: 'users-profile',
+  //       label: 'Mi Perfil',
+  //       path: ROUTES.PROTECTED.USER_PROFILE,
+  //       permissions: [PERMISSIONS.USERS.VIEW_PROFILE],
+  //       showInMenu: true
+  //     }
+  //   ]
+  // },
+  // {
+  //   id: 'forms',
+  //   label: 'Formularios',
+  //   path: ROUTES.PROTECTED.FORM_LAYOUTS,
+  //   icon: 'ri-file-text-line',
+  //   permissions: [PERMISSIONS.FORMS.VIEW],
+  //   showInMenu: true,
+  //   order: 3,
+  //   children: [
+  //     {
+  //       id: 'form-basic',
+  //       label: 'Formularios Básicos',
+  //       path: ROUTES.PROTECTED.FORM_BASIC,
+  //       permissions: [PERMISSIONS.FORMS.VIEW],
+  //       showInMenu: true
+  //     },
+  //     {
+  //       id: 'form-icons',
+  //       label: 'Formularios con Iconos',
+  //       path: ROUTES.PROTECTED.FORM_ICONS,
+  //       permissions: [PERMISSIONS.FORMS.VIEW],
+  //       showInMenu: true
+  //     }
+  //   ]
+  // },
   {
     id: 'purchase',
     label: 'Gestión de Compras',
@@ -92,58 +92,67 @@ export const MENU_CONFIG: MenuItem[] = [
     order: 3.6
   },
   {
-    id: 'general',
-    label: 'General',
-    path: ROUTES.PROTECTED.GENERAL_CATALOGS,
-    icon: 'ri-settings-line',
-    permissions: [PERMISSIONS.CATALOGS.VIEW],
+    id: 'products',
+    label: 'Gestión de Productos',
+    path: ROUTES.PROTECTED.PRODUCTS,
+    icon: 'ri-box-3-line',
+    permissions: [PERMISSIONS.PRODUCTS.VIEW],
     showInMenu: true,
-    order: 4,
-    children: [
-      {
-        id: 'period-name',
-        label: 'Period Name',
-        path: ROUTES.PROTECTED.PERIOD_NAME,
-        icon: 'ri-calendar-line',
-        permissions: [PERMISSIONS.CATALOGS.PERIOD_NAME],
-        showInMenu: true
-      }
-    ]
+    order: 3.7
   },
-  {
-    id: 'cards',
-    label: 'Componentes',
-    path: ROUTES.PROTECTED.CARD_BASIC,
-    icon: 'ri-layout-card-line',
-    permissions: [PERMISSIONS.DASHBOARD.VIEW],
-    showInMenu: true,
-    order: 5
-  },
-  {
-    id: 'settings',
-    label: 'Configuración',
-    path: ROUTES.PROTECTED.ACCOUNT_SETTINGS,
-    icon: 'ri-settings-line',
-    permissions: [PERMISSIONS.SETTINGS.VIEW],
-    showInMenu: true,
-    order: 6,
-    children: [
-      {
-        id: 'account-details',
-        label: 'Detalles de Cuenta',
-        path: ROUTES.PROTECTED.ACCOUNT_DETAILS,
-        permissions: [PERMISSIONS.SETTINGS.ACCOUNT],
-        showInMenu: true
-      },
-      {
-        id: 'notifications',
-        label: 'Notificaciones',
-        path: ROUTES.PROTECTED.NOTIFICATIONS,
-        permissions: [PERMISSIONS.SETTINGS.NOTIFICATIONS],
-        showInMenu: true
-      }
-    ]
-  }
+  // {
+  //   id: 'general',
+  //   label: 'General',
+  //   path: ROUTES.PROTECTED.GENERAL_CATALOGS,
+  //   icon: 'ri-settings-line',
+  //   permissions: [PERMISSIONS.CATALOGS.VIEW],
+  //   showInMenu: true,
+  //   order: 4,
+  //   children: [
+  //     {
+  //       id: 'period-name',
+  //       label: 'Period Name',
+  //       path: ROUTES.PROTECTED.PERIOD_NAME,
+  //       icon: 'ri-calendar-line',
+  //       permissions: [PERMISSIONS.CATALOGS.PERIOD_NAME],
+  //       showInMenu: true
+  //     }
+  //   ]
+  // },
+  // {
+  //   id: 'cards',
+  //   label: 'Componentes',
+  //   path: ROUTES.PROTECTED.CARD_BASIC,
+  //   icon: 'ri-layout-card-line',
+  //   permissions: [PERMISSIONS.DASHBOARD.VIEW],
+  //   showInMenu: true,
+  //   order: 5
+  // }
+  // {
+  //   id: 'settings',
+  //   label: 'Configuración',
+  //   path: ROUTES.PROTECTED.ACCOUNT_SETTINGS,
+  //   icon: 'ri-settings-line',
+  //   permissions: [PERMISSIONS.SETTINGS.VIEW],
+  //   showInMenu: true,
+  //   order: 6,
+  //   children: [
+  //     {
+  //       id: 'account-details',
+  //       label: 'Detalles de Cuenta',
+  //       path: ROUTES.PROTECTED.ACCOUNT_DETAILS,
+  //       permissions: [PERMISSIONS.SETTINGS.ACCOUNT],
+  //       showInMenu: true
+  //     },
+  //     {
+  //       id: 'notifications',
+  //       label: 'Notificaciones',
+  //       path: ROUTES.PROTECTED.NOTIFICATIONS,
+  //       permissions: [PERMISSIONS.SETTINGS.NOTIFICATIONS],
+  //       showInMenu: true
+  //     }
+  //   ]
+  // }
 ]
 
 // Función para filtrar menús basado en permisos del usuario

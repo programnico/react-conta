@@ -9,14 +9,14 @@ import Providers from '@components/Providers'
 
 // Style Imports
 import '@/app/globals.css'
+import '@/@core/styles/vertical/collapsedMenuStyles-v2.css'
 
 // Generated Icon CSS Imports
 import '@assets/iconify-icons/generated-icons.css'
 
 export const metadata = {
-  title: 'Demo: Materio - NextJS Dashboard Free',
-  description:
-    'Develop next-level web apps with Materio Dashboard Free - NextJS. Now, updated with lightning-fast routing powered by MUI and App router.'
+  title: 'Demo: ',
+  description: 'Develop next-level web apps '
 }
 
 const RootLayout = ({ children }: ChildrenType) => {

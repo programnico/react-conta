@@ -52,10 +52,13 @@ const LoginForm = () => {
   const [verificationCode, setVerificationCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
-  // Redirect if authenticated
+  // Redirect if authenticated - let LoginPage handle the redirect
   useEffect(() => {
     if (isAuthenticated && loginStep === 'completed') {
-      router.push('/')
+      // Check for redirect parameter or default to dashboard
+      const searchParams = new URLSearchParams(window.location.search)
+      const redirect = searchParams.get('redirect') || '/dashboard'
+      router.push(redirect)
     }
   }, [isAuthenticated, loginStep, router])
 

@@ -44,7 +44,7 @@ const RenderExpandIcon = ({ open, transitionDuration }: RenderExpandIconProps) =
 const DynamicVerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPerfectScrollbar: boolean) => void }) => {
   // Hooks
   const theme = useTheme()
-  const { isBreakpointReached, transitionDuration } = useVerticalNav()
+  const { isBreakpointReached, transitionDuration, isCollapsed } = useVerticalNav()
   const { permissions } = usePermissions()
 
   // Get filtered menu based on user permissions
@@ -55,23 +55,31 @@ const DynamicVerticalMenu = ({ scrollMenu }: { scrollMenu: (container: any, isPe
   const ScrollWrapper = isBreakpointReached ? 'div' : PerfectScrollbar
 
   // Render menu items recursively with useCallback to prevent infinite loops
-  const renderMenuItems = useCallback((menuItems: typeof filteredMenu) => {
-    return menuItems.map(item => {
-      if (item.children && item.children.length > 0) {
-        return (
-          <SubMenu key={item.id} label={item.label} icon={item.icon ? <i className={item.icon} /> : undefined}>
-            {renderMenuItems(item.children)}
-          </SubMenu>
-        )
-      }
+  const renderMenuItems = useCallback(
+    (menuItems: typeof filteredMenu) => {
+      return menuItems.map(item => {
+        if (item.children && item.children.length > 0 && !isCollapsed) {
+          return (
+            <SubMenu key={item.id} label={item.label} icon={item.icon ? <i className={item.icon} /> : undefined}>
+              {renderMenuItems(item.children)}
+            </SubMenu>
+          )
+        }
 
-      return (
-        <MenuItem key={item.id} href={item.path} icon={item.icon ? <i className={item.icon} /> : undefined}>
-          {item.label}
-        </MenuItem>
-      )
-    })
-  }, [])
+        return (
+          <MenuItem
+            key={item.id}
+            href={item.path}
+            icon={item.icon ? <i className={item.icon} /> : isCollapsed ? <i className='ri-circle-line' /> : undefined}
+            title={isCollapsed ? item.label : undefined}
+          >
+            <span className='menu-item-text'>{item.label}</span>
+          </MenuItem>
+        )
+      })
+    },
+    [isCollapsed]
+  )
 
   const menuItems = useMemo(() => renderMenuItems(filteredMenu), [filteredMenu, renderMenuItems])
 

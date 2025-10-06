@@ -45,9 +45,6 @@
       ],
       "@configs/*": [
         "./src/configs/*"
-      ],
-      "@views/*": [
-        "./src/views/*"
       ]
     }
   },
