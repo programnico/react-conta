@@ -119,7 +119,6 @@ export const usePurchases = (options: UsePurchasesOptions = {}): UsePurchasesRet
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error loading purchases'
         setError(errorMessage)
-        console.error('Error loading purchases:', err)
       } finally {
         setLoading(prev => ({ ...prev, purchases: false }))
       }
@@ -138,7 +137,6 @@ export const usePurchases = (options: UsePurchasesOptions = {}): UsePurchasesRet
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error loading suppliers'
       setError(errorMessage)
-      console.error('Error loading suppliers:', err)
     } finally {
       setLoading(prev => ({ ...prev, suppliers: false }))
     }
@@ -326,7 +324,7 @@ export const usePurchases = (options: UsePurchasesOptions = {}): UsePurchasesRet
   // Auto-load on mount
   useEffect(() => {
     if (autoLoad) {
-      Promise.all([loadPurchases(1, filters), loadSuppliers()]).catch(console.error)
+      Promise.all([loadPurchases(1, filters), loadSuppliers()]).catch(() => {})
     }
   }, []) // Only run on mount
 

@@ -58,9 +58,6 @@ export function SessionWarning() {
 
     // Reset activity timestamp to extend session
     localStorage.setItem('lastActivity', Date.now().toString())
-
-    // Dispatch an action or make an API call to extend session
-    console.info('Session extended by user interaction')
   }
 
   const handleLogout = () => {

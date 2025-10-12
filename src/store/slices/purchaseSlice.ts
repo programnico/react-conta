@@ -109,7 +109,6 @@ const purchaseSlice = createSlice({
       state.pagination = initialState.pagination
     },
     resetLoadingStates: state => {
-      console.log('🔄 Manual reset of all loading states')
       state.loading = {
         list: false,
         create: false,
@@ -174,23 +173,17 @@ const purchaseSlice = createSlice({
     // Update purchase
     builder
       .addCase(updatePurchase.pending, state => {
-        console.log('🔄 updatePurchase.pending - Setting loading.update = true')
         state.loading.update = true
         state.error = null
       })
       .addCase(updatePurchase.fulfilled, (state, action) => {
-        console.log('✅ updatePurchase.fulfilled - Setting loading.update = false, payload:', action.payload)
         state.loading.update = false
         const index = state.purchases.findIndex(p => p.id === action.payload.id)
         if (index !== -1) {
           state.purchases[index] = action.payload
-          console.log('📝 Updated purchase at index:', index)
-        } else {
-          console.warn('⚠️ Could not find purchase to update with id:', action.payload.id)
         }
       })
       .addCase(updatePurchase.rejected, (state, action) => {
-        console.log('❌ updatePurchase.rejected - Setting loading.update = false, error:', action.error.message)
         state.loading.update = false
         state.error = action.error.message || 'Error updating purchase'
       })

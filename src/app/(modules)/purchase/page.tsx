@@ -65,61 +65,44 @@ const PurchasePage = () => {
 
   // Handlers
   const handleOpenForm = (purchase?: Purchase) => {
-    console.log('🔄 handleOpenForm called with purchase:', purchase)
-    console.log('🔄 Current loading state:', loading)
-
     // If any loading states are stuck, reset them before opening the form
     if (loading.any) {
-      console.log('⚠️ Loading states appear stuck, forcing reset...')
       forceResetLoadingStates()
     }
 
     setSelectedPurchase(purchase || null)
     setIsFormOpen(true)
-    console.log('✅ Form opened, selectedPurchase:', purchase || null, 'isFormOpen: true')
   }
 
   const handleCloseForm = () => {
-    console.log('🔄 handleCloseForm called')
-    console.log('🔄 Current loading state:', loading)
     setIsFormOpen(false)
     setSelectedPurchase(null)
-    console.log('✅ Form closed, isFormOpen: false, selectedPurchase: null')
   }
 
   const handleFormSubmit = async (data: CreatePurchaseRequest) => {
     // Set up a timeout to force reset loading states if operation hangs
     const timeoutId = setTimeout(() => {
-      console.log('⏰ Operation timeout - forcing loading state reset')
       forceResetLoadingStates()
     }, 10000) // 10 second timeout
 
     try {
-      console.log('🚀 Starting handleFormSubmit, isEditing:', isEditing, 'selectedPurchase:', selectedPurchase)
       if (isEditing && selectedPurchase) {
-        console.log('🔄 Calling updatePurchase...')
         await updatePurchase(selectedPurchase.id, data)
-        console.log('✅ updatePurchase completed successfully')
         setSnackbar({
           open: true,
           message: 'Compra actualizada exitosamente',
           severity: 'success'
         })
       } else {
-        console.log('🔄 Calling createPurchase...')
         await createPurchase(data)
-        console.log('✅ createPurchase completed successfully')
         setSnackbar({
           open: true,
           message: 'Compra creada exitosamente',
           severity: 'success'
         })
       }
-      console.log('🔄 Calling handleCloseForm...')
       handleCloseForm()
-      console.log('✅ Form closed successfully')
     } catch (err) {
-      console.error('❌ Error in handleFormSubmit:', err)
       setSnackbar({
         open: true,
         message: 'Error al guardar la compra',

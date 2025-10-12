@@ -73,7 +73,7 @@ export function useRoles() {
       const statsData = await RolesService.getRoleStats(roleList)
       setStats(statsData)
     } catch (error) {
-      console.error('Error calculating stats:', error)
+      // Stats calculation failed, continue without stats
     }
   }, [])
 

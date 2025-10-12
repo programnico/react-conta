@@ -224,7 +224,6 @@ export class ApiClient {
           return // Token refreshed successfully
         } catch (refreshError) {
           // Refresh failed, continue to logout
-          console.warn('Token refresh failed:', refreshError)
         }
       }
 
@@ -241,7 +240,6 @@ export class ApiClient {
         window.location.href = '/login?reason=session_expired'
       }
     } catch (error) {
-      console.error('Error handling unauthorized response:', error)
       // Fallback: force reload to login
       if (window.location.pathname !== '/login') {
         window.location.href = '/login?reason=error'

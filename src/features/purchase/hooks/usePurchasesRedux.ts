@@ -141,13 +141,9 @@ export const usePurchasesRedux = (options: UsePurchasesOptions = {}): UsePurchas
 
   const updatePurchase = useCallback(
     async (id: number, data: CreatePurchaseRequest) => {
-      console.log('🔄 Redux Hook - updatePurchase called with id:', id, 'data:', data)
       try {
         const result = await dispatch(updatePurchaseAction({ id, data })).unwrap()
-        console.log('✅ Redux Hook - updatePurchase success:', result)
       } catch (error) {
-        console.error('❌ Redux Hook - updatePurchase error:', error)
-        console.log('🔄 Resetting loading states due to error...')
         dispatch(resetLoadingStates())
         throw error
       }
@@ -156,7 +152,6 @@ export const usePurchasesRedux = (options: UsePurchasesOptions = {}): UsePurchas
   )
 
   const forceResetLoadingStates = useCallback(() => {
-    console.log('🔄 Force resetting all loading states...')
     dispatch(resetLoadingStates())
   }, [dispatch])
 
@@ -252,17 +247,7 @@ export const usePurchasesRedux = (options: UsePurchasesOptions = {}): UsePurchas
 
   // Auto-load on mount - only once
   useEffect(() => {
-    console.log(
-      '🔍 useEffect Redux Hook - autoLoad:',
-      autoLoad,
-      'isAuthenticated:',
-      isAuthenticated,
-      'hasLoadedData:',
-      hasLoadedData.current
-    )
-
     if (autoLoad && isAuthenticated && !hasLoadedData.current) {
-      console.log('🚀 Loading data with Redux... (FIRST TIME)')
       hasLoadedData.current = true
 
       // Set initial filters

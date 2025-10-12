@@ -229,9 +229,7 @@ class AuthService {
       return true
     } catch (error) {
       if (error instanceof ApiErrorClass) {
-        // Log specific validation errors for debugging
         if (error.status === 401) {
-          console.info('Token validation failed: token expired or invalid')
           return false
         } else if (error.status === 404) {
           // If profile endpoint doesn't exist, try me endpoint
@@ -243,17 +241,14 @@ class AuthService {
               return false
             }
             // For other errors, assume token is still valid to avoid unnecessary logouts
-            console.warn('Token validation inconclusive, assuming valid to avoid disruption')
             return true
           }
         } else if (error.status >= 500) {
-          console.warn('Token validation failed: server error, assuming token is still valid')
           return true // Don't logout user for server errors
         }
       }
 
       // For network errors or other issues, assume token is valid to avoid disrupting user
-      console.warn('Token validation error, assuming valid:', error)
       return true
     }
   }

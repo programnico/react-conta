@@ -42,7 +42,6 @@ class PurchaseService {
       })
       return response
     } catch (error) {
-      console.error('Error fetching purchases:', error)
       throw error
     }
   }
@@ -55,7 +54,6 @@ class PurchaseService {
       const response = await apiClient.get<ApiResponse<Purchase>>(`${API_CONFIG.ENDPOINTS.PURCHASE.LIST}/${id}`)
       return response.data!
     } catch (error) {
-      console.error('Error fetching purchase:', error)
       throw error
     }
   }
@@ -101,12 +99,6 @@ class PurchaseService {
         }
       })
 
-      // Debug FormData content
-      console.log('🔍 FormData contents:')
-      for (let [key, value] of formData.entries()) {
-        console.log(`${key}:`, value)
-      }
-
       const response = await apiClient.request<Purchase>({
         endpoint: API_CONFIG.ENDPOINTS.PURCHASE.SAVE,
         method: 'POST',
@@ -115,7 +107,6 @@ class PurchaseService {
       })
       return response
     } catch (error) {
-      console.error('Error creating purchase:', error)
       throw error
     }
   }
@@ -169,11 +160,8 @@ class PurchaseService {
         data: formData,
         useFormData: true
       })
-      console.log('🔍 Purchase update API response:', response)
-      console.log('🔍 Purchase data being returned:', response)
       return response
     } catch (error) {
-      console.error('Error updating purchase:', error)
       throw error
     }
   }
@@ -185,7 +173,6 @@ class PurchaseService {
     try {
       await apiClient.delete(`${API_CONFIG.ENDPOINTS.PURCHASE.DELETE}/${id}`)
     } catch (error) {
-      console.error('Error deleting purchase:', error)
       throw error
     }
   }
@@ -209,7 +196,6 @@ class PurchaseService {
         return response.data || []
       }
     } catch (error) {
-      console.error('Error fetching suppliers:', error)
       throw error
     }
   }

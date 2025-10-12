@@ -38,7 +38,6 @@ export function useTokenValidator(options: UseTokenValidatorOptions = {}) {
         const isValid = await AuthService.validateToken(accessToken)
 
         if (!isValid) {
-          console.warn('Token validation failed - logging out user')
           dispatch(resetAuth())
 
           // Redirect to login if not already there
@@ -50,11 +49,8 @@ export function useTokenValidator(options: UseTokenValidatorOptions = {}) {
 
         return true
       } catch (error) {
-        console.error('Token validation error:', error)
-
         // Only logout on forceful validation or 401 errors
         if (forceful && error instanceof Error && error.message.includes('401')) {
-          console.warn('Forceful token validation failed - logging out user')
           dispatch(resetAuth())
 
           if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
@@ -75,7 +71,6 @@ export function useTokenValidator(options: UseTokenValidatorOptions = {}) {
    */
   const handleInactivity = useCallback(() => {
     if (isAuthenticated) {
-      console.info('User inactive for too long - logging out')
       dispatch(resetAuth())
 
       if (typeof window !== 'undefined') {
@@ -94,7 +89,6 @@ export function useTokenValidator(options: UseTokenValidatorOptions = {}) {
 
       // Si ha pasado más de 1 hora, validar token
       if (lastActivity && now - parseInt(lastActivity) > 60 * 60 * 1000) {
-        console.info('User returned after extended absence - validating token')
         dispatch(setLoading(true))
 
         const isValid = await validateToken(true) // true = forceful validation
@@ -127,7 +121,6 @@ export function useTokenValidator(options: UseTokenValidatorOptions = {}) {
       if (!lastActivity || now - parseInt(lastActivity) > 10 * 60 * 1000) {
         // 10 minutos
         // Solo hacer validación suave en mount
-        console.info('Performing soft token validation on app mount')
         validateToken(false) // false = no forceful
       }
 

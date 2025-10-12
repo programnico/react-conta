@@ -234,7 +234,7 @@ export const PurchaseForm: React.FC<PurchaseFormProps> = ({
 
       await onSubmit(submitData)
     } catch (error) {
-      console.error('Error submitting purchase:', error)
+      // Error is handled by parent component
     }
   }
 

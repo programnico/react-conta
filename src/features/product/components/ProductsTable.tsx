@@ -32,9 +32,9 @@ interface ProductsTableProps {
 const ProductsTableComponent: React.FC<ProductsTableProps> = ({ products, onEdit, onDelete, loading = false }) => {
   const formatPrice = (price: string | number) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price
-    return new Intl.NumberFormat('es-GT', {
+    return new Intl.NumberFormat('es-US', {
       style: 'currency',
-      currency: 'GTQ'
+      currency: 'USD'
     }).format(numPrice)
   }
 
