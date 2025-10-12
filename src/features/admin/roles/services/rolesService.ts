@@ -1,5 +1,5 @@
 // features/admin/roles/services/rolesService.ts
-import { apiClient, ApiError as ApiErrorClass } from '@/shared/services/apiClient'
+import { apiClient, ApiError as ApiErrorClass, API_CONFIG } from '@/shared/services/apiClient'
 import type {
   Role,
   Permission,
@@ -11,11 +11,7 @@ import type {
 } from '../types'
 
 export class RolesService {
-  private static readonly ENDPOINTS = {
-    ROLES: '/roles',
-    ROLES_SAVE: '/roles/save',
-    PERMISSIONS: '/permissions'
-  }
+  // Using centralized API_CONFIG endpoints
 
   /**
    * Get all roles with permissions and users
@@ -23,7 +19,7 @@ export class RolesService {
   static async getRoles(): Promise<Role[]> {
     try {
       // ApiClient automatically extracts 'data' property from API response
-      const roles = await apiClient.get<Role[]>(this.ENDPOINTS.ROLES)
+      const roles = await apiClient.get<Role[]>(API_CONFIG.ENDPOINTS.ADMIN.ROLES)
       return roles
     } catch (error) {
       if (error instanceof ApiErrorClass) {
@@ -39,7 +35,7 @@ export class RolesService {
   static async getPermissions(): Promise<Permission[]> {
     try {
       // ApiClient automatically extracts 'data' property from API response
-      const permissions = await apiClient.get<Permission[]>(this.ENDPOINTS.PERMISSIONS)
+      const permissions = await apiClient.get<Permission[]>(API_CONFIG.ENDPOINTS.ADMIN.PERMISSIONS)
       return permissions
     } catch (error) {
       if (error instanceof ApiErrorClass) {
@@ -61,7 +57,7 @@ export class RolesService {
       }
 
       // ApiClient will automatically handle FormData creation
-      const role = await apiClient.postFormData<Role>(this.ENDPOINTS.ROLES_SAVE, payload)
+      const role = await apiClient.postFormData<Role>(API_CONFIG.ENDPOINTS.ADMIN.ROLES_SAVE, payload)
       return role
     } catch (error) {
       if (error instanceof ApiErrorClass) {
@@ -84,7 +80,7 @@ export class RolesService {
       }
 
       // ApiClient will automatically handle FormData creation
-      const role = await apiClient.postFormData<Role>(this.ENDPOINTS.ROLES_SAVE, payload)
+      const role = await apiClient.postFormData<Role>(API_CONFIG.ENDPOINTS.ADMIN.ROLES_SAVE, payload)
       return role
     } catch (error) {
       if (error instanceof ApiErrorClass) {
@@ -99,7 +95,7 @@ export class RolesService {
    */
   static async deleteRole(id: number): Promise<void> {
     try {
-      await apiClient.delete(`${this.ENDPOINTS.ROLES}/${id}`)
+      await apiClient.delete(`${API_CONFIG.ENDPOINTS.ADMIN.ROLES}/${id}`)
     } catch (error) {
       if (error instanceof ApiErrorClass) {
         throw error

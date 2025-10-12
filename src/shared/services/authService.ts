@@ -165,7 +165,7 @@ class AuthService {
    */
   static async logout(accessToken: string): Promise<void> {
     try {
-      await apiClient.post('/auth/logout', {})
+      await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT, {})
     } catch (error) {
       // Logout errors are not critical, we'll proceed anyway
     }
@@ -176,7 +176,7 @@ class AuthService {
    */
   static async getUserProfile(accessToken: string): Promise<any> {
     try {
-      const response = await apiClient.get('/auth/profile')
+      const response = await apiClient.get(API_CONFIG.ENDPOINTS.AUTH.PROFILE)
       return response
     } catch (error) {
       if (error instanceof ApiErrorClass) {
@@ -191,7 +191,7 @@ class AuthService {
    */
   static async changePassword(currentPassword: string, newPassword: string, accessToken: string): Promise<void> {
     try {
-      await apiClient.post('/auth/change-password', {
+      await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.CHANGE_PASSWORD, {
         current_password: currentPassword,
         new_password: newPassword
       })
@@ -208,7 +208,7 @@ class AuthService {
    */
   static async requestPasswordReset(identity: string): Promise<void> {
     try {
-      await apiClient.post('/auth/password-reset-request', {
+      await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.PASSWORD_RESET_REQUEST, {
         identity: identity.trim()
       })
     } catch (error) {
@@ -225,7 +225,7 @@ class AuthService {
   static async validateToken(token: string): Promise<boolean> {
     try {
       // Use profile endpoint as a lightweight way to validate token
-      await apiClient.get('/auth/profile')
+      await apiClient.get(API_CONFIG.ENDPOINTS.AUTH.PROFILE)
       return true
     } catch (error) {
       if (error instanceof ApiErrorClass) {
@@ -234,9 +234,9 @@ class AuthService {
           console.info('Token validation failed: token expired or invalid')
           return false
         } else if (error.status === 404) {
-          // If /auth/profile doesn't exist, try /auth/me
+          // If profile endpoint doesn't exist, try me endpoint
           try {
-            await apiClient.get('/auth/me')
+            await apiClient.get(API_CONFIG.ENDPOINTS.AUTH.ME)
             return true
           } catch (meError) {
             if (meError instanceof ApiErrorClass && meError.status === 401) {
@@ -263,7 +263,7 @@ class AuthService {
    */
   static async getCurrentUser(): Promise<any> {
     try {
-      const response = await apiClient.get('/auth/me')
+      const response = await apiClient.get(API_CONFIG.ENDPOINTS.AUTH.ME)
       return response
     } catch (error) {
       if (error instanceof ApiErrorClass) {

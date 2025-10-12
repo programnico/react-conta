@@ -33,16 +33,14 @@ export class ApiClient {
   }
 
   private buildURL(endpoint: string, params?: Record<string, any>): string {
-    // Handle relative base URLs (like /api/proxy) for development proxy
     let fullURL: string
 
-    if (this.baseURL.startsWith('/')) {
-      // Relative URL - just concatenate
-      fullURL = `${this.baseURL}${endpoint}`
+    if (isDevelopment && isClient) {
+      // Development mode: use proxy - prepend /api to endpoint
+      fullURL = `/api${endpoint}`
     } else {
-      // Absolute URL - use URL constructor
-      const url = new URL(endpoint, this.baseURL)
-      fullURL = url.toString()
+      // Production mode: use base URL + /api + endpoint
+      fullURL = `${this.baseURL}/api${endpoint}`
     }
 
     // Add query parameters if any
@@ -257,9 +255,8 @@ const isDevelopment = process.env.NODE_ENV === 'development'
 const isClient = typeof window !== 'undefined'
 
 export const API_CONFIG = {
-  // Use proxy in development to avoid CORS, direct URL in production
-  BASE_URL:
-    isDevelopment && isClient ? '/api' : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api`,
+  // Base URL without /api - /api will be added automatically
+  BASE_URL: isDevelopment && isClient ? '' : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}`,
 
   ENDPOINTS: {
     AUTH: {
@@ -267,7 +264,10 @@ export const API_CONFIG = {
       VERIFY: '/auth/verify-2fa',
       LOGOUT: '/auth/logout',
       REFRESH: '/auth/refresh',
-      PROFILE: '/auth/profile'
+      PROFILE: '/auth/profile',
+      CHANGE_PASSWORD: '/auth/change-password',
+      PASSWORD_RESET_REQUEST: '/auth/password-reset-request',
+      ME: '/auth/me'
     },
     ADMIN: {
       ROLES: '/roles',
@@ -279,6 +279,19 @@ export const API_CONFIG = {
       SAVE: '/purchases/save',
       DELETE: '/purchases',
       SUPPLIERS: '/suppliers-all'
+    },
+    SUPPLIERS: {
+      LIST: '/suppliers',
+      SAVE: '/suppliers/save',
+      UPDATE: '/suppliers',
+      DELETE: '/suppliers',
+      DETAIL: '/suppliers'
+    },
+    PRODUCTS: {
+      LIST: '/products',
+      SAVE: '/products/save',
+      DELETE: '/products',
+      DETAIL: '/products'
     }
   }
 }
@@ -291,5 +304,8 @@ export const apiClient = new ApiClient({
 
 // Helper to build full endpoint URLs
 export const getEndpointUrl = (endpoint: string): string => {
-  return `${API_CONFIG.BASE_URL}${endpoint}`
+  if (isDevelopment && isClient) {
+    return `/api${endpoint}`
+  }
+  return `${API_CONFIG.BASE_URL}/api${endpoint}`
 }

@@ -1,9 +1,9 @@
 // features/product/services/productService.ts
-import { apiClient } from '@/shared/services/apiClient'
+import { apiClient, API_CONFIG } from '@/shared/services/apiClient'
 import type { Product, ProductsApiResponse, CreateProductRequest, GetProductsParams } from '../types'
 
 class ProductService {
-  private readonly endpoint = '/products'
+  // Using centralized API_CONFIG endpoints
 
   /**
    * Get all products with pagination and filters
@@ -24,7 +24,9 @@ class ProductService {
       if (params.min_price) queryParams.append('min_price', params.min_price.toString())
       if (params.max_price) queryParams.append('max_price', params.max_price.toString())
 
-      const endpoint = queryParams.toString() ? `${this.endpoint}?${queryParams.toString()}` : this.endpoint
+      const endpoint = queryParams.toString()
+        ? `${API_CONFIG.ENDPOINTS.PRODUCTS.LIST}?${queryParams.toString()}`
+        : API_CONFIG.ENDPOINTS.PRODUCTS.LIST
 
       const response = await apiClient.request<any>({
         endpoint,
@@ -55,7 +57,7 @@ class ProductService {
       }
 
       const response = await apiClient.request<Product>({
-        endpoint: `${this.endpoint}/save`,
+        endpoint: API_CONFIG.ENDPOINTS.PRODUCTS.SAVE,
         method: 'POST',
         data: payload,
         useFormData: true
@@ -85,7 +87,7 @@ class ProductService {
       }
 
       const response = await apiClient.request<Product>({
-        endpoint: `${this.endpoint}/save`,
+        endpoint: API_CONFIG.ENDPOINTS.PRODUCTS.SAVE,
         method: 'POST',
         data: payload,
         useFormData: true
@@ -102,7 +104,7 @@ class ProductService {
   async delete(id: number): Promise<void> {
     try {
       await apiClient.request<void>({
-        endpoint: `${this.endpoint}/${id}`,
+        endpoint: `${API_CONFIG.ENDPOINTS.PRODUCTS.DELETE}/${id}`,
         method: 'DELETE'
       })
     } catch (error) {
@@ -131,7 +133,7 @@ class ProductService {
   async getById(id: number): Promise<Product> {
     try {
       const response = await apiClient.request<Product>({
-        endpoint: `${this.endpoint}/${id}`,
+        endpoint: `${API_CONFIG.ENDPOINTS.PRODUCTS.DETAIL}/${id}`,
         method: 'GET'
       })
       return response

@@ -1,5 +1,5 @@
 // features/supplier/services/supplierService.ts
-import { apiClient } from '@/shared/services/apiClient'
+import { apiClient, API_CONFIG } from '@/shared/services/apiClient'
 import type { Supplier, SuppliersApiResponse, CreateSupplierRequest } from '../types'
 
 interface GetSuppliersParams {
@@ -13,7 +13,7 @@ interface GetSuppliersParams {
 }
 
 class SupplierService {
-  private readonly endpoint = '/suppliers'
+  // Using centralized API_CONFIG endpoints
 
   /**
    * Get all suppliers with pagination and filters
@@ -33,7 +33,9 @@ class SupplierService {
       if (params.is_active !== undefined) queryParams.append('is_active', params.is_active ? '1' : '0')
       if (params.search) queryParams.append('search', params.search)
 
-      const endpoint = queryParams.toString() ? `${this.endpoint}?${queryParams.toString()}` : this.endpoint
+      const endpoint = queryParams.toString()
+        ? `${API_CONFIG.ENDPOINTS.SUPPLIERS.LIST}?${queryParams.toString()}`
+        : API_CONFIG.ENDPOINTS.SUPPLIERS.LIST
 
       const response = await apiClient.request<SuppliersApiResponse>({
         endpoint,
@@ -64,7 +66,7 @@ class SupplierService {
       }
 
       const response = await apiClient.request<Supplier>({
-        endpoint: `${this.endpoint}/save`,
+        endpoint: API_CONFIG.ENDPOINTS.SUPPLIERS.SAVE,
         method: 'POST',
         data: payload
       })
@@ -93,7 +95,7 @@ class SupplierService {
       }
 
       const response = await apiClient.request<Supplier>({
-        endpoint: `${this.endpoint}/${id}/update`,
+        endpoint: `${API_CONFIG.ENDPOINTS.SUPPLIERS.UPDATE}/${id}`,
         method: 'PUT',
         data: payload
       })
@@ -109,7 +111,7 @@ class SupplierService {
   async delete(id: number): Promise<void> {
     try {
       await apiClient.request<void>({
-        endpoint: `${this.endpoint}/${id}/delete`,
+        endpoint: `${API_CONFIG.ENDPOINTS.SUPPLIERS.DELETE}/${id}`,
         method: 'DELETE'
       })
     } catch (error) {
@@ -138,7 +140,7 @@ class SupplierService {
   async getById(id: number): Promise<Supplier> {
     try {
       const response = await apiClient.request<Supplier>({
-        endpoint: `${this.endpoint}/${id}`,
+        endpoint: `${API_CONFIG.ENDPOINTS.SUPPLIERS.DETAIL}/${id}`,
         method: 'GET'
       })
       return response

@@ -1,5 +1,5 @@
 // features/purchase/services/purchaseService.ts
-import { apiClient } from '@/shared/services/apiClient'
+import { apiClient, API_CONFIG } from '@/shared/services/apiClient'
 import type { ApiResponse } from '@/shared/types/api'
 import type {
   Purchase,
@@ -12,8 +12,7 @@ import type {
 } from '../types'
 
 class PurchaseService {
-  private readonly endpoint = '/purchases'
-  private readonly suppliersEndpoint = '/suppliers-all'
+  // Using centralized API_CONFIG endpoints
 
   /**
    * Get all purchases with pagination and filters
@@ -32,7 +31,9 @@ class PurchaseService {
       if (filters?.search) params.append('search', filters.search)
 
       const queryString = params.toString()
-      const url = queryString ? `${this.endpoint}?${queryString}` : this.endpoint
+      const url = queryString
+        ? `${API_CONFIG.ENDPOINTS.PURCHASE.LIST}?${queryString}`
+        : API_CONFIG.ENDPOINTS.PURCHASE.LIST
 
       // Use direct request to get the full API response structure
       const response = await apiClient.request<PurchasesApiResponse>({
@@ -51,7 +52,7 @@ class PurchaseService {
    */
   async getById(id: number): Promise<Purchase> {
     try {
-      const response = await apiClient.get<ApiResponse<Purchase>>(`${this.endpoint}/${id}`)
+      const response = await apiClient.get<ApiResponse<Purchase>>(`${API_CONFIG.ENDPOINTS.PURCHASE.LIST}/${id}`)
       return response.data!
     } catch (error) {
       console.error('Error fetching purchase:', error)
@@ -107,7 +108,7 @@ class PurchaseService {
       }
 
       const response = await apiClient.request<Purchase>({
-        endpoint: `${this.endpoint}/save`,
+        endpoint: API_CONFIG.ENDPOINTS.PURCHASE.SAVE,
         method: 'POST',
         data: formData,
         useFormData: true
@@ -163,7 +164,7 @@ class PurchaseService {
       })
 
       const response = await apiClient.request<Purchase>({
-        endpoint: `${this.endpoint}/save`,
+        endpoint: API_CONFIG.ENDPOINTS.PURCHASE.SAVE,
         method: 'POST',
         data: formData,
         useFormData: true
@@ -182,7 +183,7 @@ class PurchaseService {
    */
   async delete(id: number): Promise<void> {
     try {
-      await apiClient.delete(`${this.endpoint}/${id}`)
+      await apiClient.delete(`${API_CONFIG.ENDPOINTS.PURCHASE.DELETE}/${id}`)
     } catch (error) {
       console.error('Error deleting purchase:', error)
       throw error
@@ -196,7 +197,7 @@ class PurchaseService {
     try {
       // Use direct request to get the full API response structure
       const response = await apiClient.request<SuppliersApiResponse>({
-        endpoint: this.suppliersEndpoint,
+        endpoint: API_CONFIG.ENDPOINTS.PURCHASE.SUPPLIERS,
         method: 'GET'
       })
 
