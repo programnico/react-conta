@@ -22,7 +22,9 @@ export const ROUTES = {
     // Suppliers Module
     SUPPLIERS: '/suppliers', // Ruta: (modules)/suppliers
     // Products Module
-    PRODUCTS: '/products' // Ruta: (modules)/products
+    PRODUCTS: '/products', // Ruta: (modules)/products
+    // Chart of Accounts Module
+    CHART_OF_ACCOUNTS: '/chart-of-accounts' // Ruta: (modules)/chart-of-accounts
   }
 } as const
 
@@ -93,6 +95,14 @@ export const ROUTE_CONFIG = {
     permissions: [PERMISSIONS.PRODUCTS.VIEW],
     showInMenu: true,
     icon: 'ri-box-3-line'
+  },
+
+  [ROUTES.PROTECTED.CHART_OF_ACCOUNTS]: {
+    public: false,
+    title: 'Plan de Cuentas',
+    permissions: [PERMISSIONS.CHART_OF_ACCOUNTS.VIEW],
+    showInMenu: true,
+    icon: 'ri-account-box-line'
   }
 } as const
 

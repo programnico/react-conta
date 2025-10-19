@@ -34,7 +34,8 @@ export class ApiErrorClass extends Error {
   constructor(
     message: string,
     public status?: number,
-    public code?: string
+    public code?: string,
+    public errors?: Record<string, string[]> // Errores de validación
   ) {
     super(message)
     this.name = 'ApiError'
@@ -105,17 +106,23 @@ export const apiClient = async <T = any>(endpoint: string, config: RequestConfig
     if (!response.ok) {
       let errorMessage = 'Network error occurred'
       let errorCode = 'NETWORK_ERROR'
+      let validationErrors: Record<string, string[]> | undefined
 
       try {
         const errorData = await response.json()
         errorMessage = errorData.message || errorData.error || errorMessage
         errorCode = errorData.code || 'API_ERROR'
+
+        // Capturar errores de validación si existen
+        if (errorData.errors && typeof errorData.errors === 'object') {
+          validationErrors = errorData.errors
+        }
       } catch {
         // If response is not JSON, use status text
         errorMessage = response.statusText || errorMessage
       }
 
-      throw new ApiErrorClass(errorMessage, response.status, errorCode)
+      throw new ApiErrorClass(errorMessage, response.status, errorCode, validationErrors)
     }
 
     // Handle empty responses

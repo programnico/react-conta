@@ -100,6 +100,15 @@ export const MENU_CONFIG: MenuItem[] = [
     showInMenu: true,
     order: 3.7
   },
+  {
+    id: 'chart-of-accounts',
+    label: 'Plan de Cuentas',
+    path: ROUTES.PROTECTED.CHART_OF_ACCOUNTS,
+    icon: 'ri-account-box-line',
+    permissions: [PERMISSIONS.CHART_OF_ACCOUNTS.VIEW],
+    showInMenu: true,
+    order: 3.8
+  }
   // {
   //   id: 'general',
   //   label: 'General',

@@ -1,4 +1,6 @@
 // shared/services/apiClient.ts
+import { API_CONFIG as CONFIG, getEndpointUrl as buildEndpointUrl } from '../config/apiConfig'
+
 export interface RequestConfig {
   endpoint: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
@@ -12,7 +14,8 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public code?: string
+    public code?: string,
+    public errors?: Record<string, string[]> // Errores de validación
   ) {
     super(message)
     this.name = 'ApiError'
@@ -26,22 +29,12 @@ export class ApiClient {
   constructor(config: { baseURL: string; timeout?: number }) {
     this.baseURL = config.baseURL
     this.defaultHeaders = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'X-Requested-With': 'XMLHttpRequest'
+      ...CONFIG.CLIENT.DEFAULT_HEADERS
     }
   }
 
   private buildURL(endpoint: string, params?: Record<string, any>): string {
-    let fullURL: string
-
-    if (isDevelopment && isClient) {
-      // Development mode: use proxy - prepend /api to endpoint
-      fullURL = `/api${endpoint}`
-    } else {
-      // Production mode: use base URL + /api + endpoint
-      fullURL = `${this.baseURL}/api${endpoint}`
-    }
+    const fullURL = buildEndpointUrl(endpoint)
 
     // Add query parameters if any
     if (params) {
@@ -66,7 +59,7 @@ export class ApiClient {
         return state.auth.accessToken
       } catch (error) {
         // Fallback to localStorage if Redux store is not available
-        return localStorage.getItem('accessToken')
+        return localStorage.getItem(CONFIG.CLIENT.AUTH.STORAGE_KEYS.ACCESS_TOKEN)
       }
     }
     return null
@@ -84,7 +77,7 @@ export class ApiClient {
     }
 
     if (token) {
-      requestHeaders.Authorization = `Bearer ${token}`
+      requestHeaders[CONFIG.CLIENT.AUTH.TOKEN_HEADER] = `${CONFIG.CLIENT.AUTH.TOKEN_PREFIX}${token}`
     }
 
     let body: any = undefined
@@ -126,11 +119,17 @@ export class ApiClient {
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`
         let errorCode = 'HTTP_ERROR'
+        let validationErrors: Record<string, string[]> | undefined
 
         try {
           const errorData = await response.json()
           errorMessage = errorData.message || errorData.error || errorMessage
           errorCode = errorData.code || 'API_ERROR'
+
+          // Capturar errores de validación si existen
+          if (errorData.errors && typeof errorData.errors === 'object') {
+            validationErrors = errorData.errors
+          }
         } catch {
           // If response is not JSON, use default message
         }
@@ -140,7 +139,7 @@ export class ApiClient {
           await this.handleUnauthorized()
         }
 
-        throw new ApiError(response.status, errorMessage, errorCode)
+        throw new ApiError(response.status, errorMessage, errorCode, validationErrors)
       }
 
       // Handle empty responses
@@ -231,9 +230,9 @@ export class ApiClient {
       store.dispatch(resetAuth())
 
       // Clear localStorage as fallback
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
-      localStorage.removeItem('userData')
+      localStorage.removeItem(CONFIG.CLIENT.AUTH.STORAGE_KEYS.ACCESS_TOKEN)
+      localStorage.removeItem(CONFIG.CLIENT.AUTH.STORAGE_KEYS.REFRESH_TOKEN)
+      localStorage.removeItem(CONFIG.CLIENT.AUTH.STORAGE_KEYS.USER_DATA)
 
       // Redirect to login only if not already there
       if (window.location.pathname !== '/login') {
@@ -248,62 +247,12 @@ export class ApiClient {
   }
 }
 
-// API Configuration
-const isDevelopment = process.env.NODE_ENV === 'development'
-const isClient = typeof window !== 'undefined'
-
-export const API_CONFIG = {
-  // Base URL without /api - /api will be added automatically
-  BASE_URL: isDevelopment && isClient ? '' : `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}`,
-
-  ENDPOINTS: {
-    AUTH: {
-      LOGIN: '/auth/login',
-      VERIFY: '/auth/verify-2fa',
-      LOGOUT: '/auth/logout',
-      REFRESH: '/auth/refresh',
-      PROFILE: '/auth/profile',
-      CHANGE_PASSWORD: '/auth/change-password',
-      PASSWORD_RESET_REQUEST: '/auth/password-reset-request',
-      ME: '/auth/me'
-    },
-    ADMIN: {
-      ROLES: '/roles',
-      ROLES_SAVE: '/roles/save',
-      PERMISSIONS: '/permissions'
-    },
-    PURCHASE: {
-      LIST: '/purchases',
-      SAVE: '/purchases/save',
-      DELETE: '/purchases',
-      SUPPLIERS: '/suppliers-all'
-    },
-    SUPPLIERS: {
-      LIST: '/suppliers',
-      SAVE: '/suppliers/save',
-      UPDATE: '/suppliers',
-      DELETE: '/suppliers',
-      DETAIL: '/suppliers'
-    },
-    PRODUCTS: {
-      LIST: '/products',
-      SAVE: '/products/save',
-      DELETE: '/products',
-      DETAIL: '/products'
-    }
-  }
-}
+// Re-export configuration for backward compatibility
+export { API_CONFIG } from '../config/apiConfig'
+export { getEndpointUrl } from '../config/apiConfig'
 
 // Create default API client instance
 export const apiClient = new ApiClient({
-  baseURL: API_CONFIG.BASE_URL,
-  timeout: 30000
+  baseURL: CONFIG.BASE_URL,
+  timeout: CONFIG.CLIENT.TIMEOUT
 })
-
-// Helper to build full endpoint URLs
-export const getEndpointUrl = (endpoint: string): string => {
-  if (isDevelopment && isClient) {
-    return `/api${endpoint}`
-  }
-  return `${API_CONFIG.BASE_URL}/api${endpoint}`
-}

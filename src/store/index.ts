@@ -11,26 +11,27 @@ import rolesReducer from '@/shared/store/rolesSlice'
 import purchaseReducer from './slices/purchaseSlice'
 import supplierReducer from './slices/supplierSlice'
 import productReducer from './slices/productSlice'
+import chartOfAccountsReducer from './slices/chartOfAccountsSlice'
 
 // Persist configuration
 const persistConfig = {
   key: 'root',
   version: 1, // Keep version 1 to preserve existing sessions
   storage,
-  whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products'] // Persist auth, roles, purchases, suppliers and products state
+  whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products', 'chartOfAccounts'] // Persist auth, roles, purchases, suppliers, products and chartOfAccounts state
 }
 
 // Root reducer with modular structure
 const rootReducer = combineReducers({
-  // 🌟 Global state (always available)
+  // Global state (always available)
   auth: authReducer,
   roles: rolesReducer,
 
-  // 🏢 Feature modules (loaded as needed)
+  // Feature modules (loaded as needed)
   purchases: purchaseReducer,
   suppliers: supplierReducer,
-  products: productReducer
-
+  products: productReducer,
+  chartOfAccounts: chartOfAccountsReducer
   // Future modules:
   // accounting: accountingReducer,
   // administration: administrationReducer
