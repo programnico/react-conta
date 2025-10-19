@@ -63,7 +63,7 @@ interface UseChartOfAccountsReturn {
   }
 
   // Actions
-  loadAccounts: (page?: number, filters?: ChartOfAccountFilters) => Promise<void>
+  loadAccounts: (page?: number, filters?: ChartOfAccountFilters, pageSize?: number) => Promise<void>
   createAccount: (data: CreateChartOfAccountRequest) => Promise<void>
   updateAccount: (id: number, data: CreateChartOfAccountRequest) => Promise<void>
   deleteAccount: (id: number) => Promise<void>

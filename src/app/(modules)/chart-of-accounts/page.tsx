@@ -20,6 +20,7 @@ import {
 import { Add as AddIcon, Refresh as RefreshIcon, AccountTree as AccountTreeIcon } from '@mui/icons-material'
 
 // Components
+import AuthGuard from '@/components/auth/AuthGuard'
 import {
   ChartOfAccountsTable,
   ChartOfAccountsFilters,
@@ -151,162 +152,169 @@ const ChartOfAccountsPage = () => {
   }
 
   return (
-    <Container maxWidth='xl' sx={{ py: 4 }}>
-      {/* Header */}
-      <Box mb={4}>
-        <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
-          <Box display='flex' alignItems='center' gap={2}>
-            <AccountTreeIcon sx={{ fontSize: 32 }} />
-            <Typography variant='h4' component='h1'>
-              Plan de Cuentas
-            </Typography>
+    <AuthGuard>
+      <Container maxWidth='xl' sx={{ py: 4 }}>
+        {/* Header */}
+        <Box mb={4}>
+          <Box display='flex' justifyContent='space-between' alignItems='center' mb={2}>
+            <Box display='flex' alignItems='center' gap={2}>
+              <AccountTreeIcon sx={{ fontSize: 32 }} />
+              <Typography variant='h4' component='h1'>
+                Plan de Cuentas
+              </Typography>
+            </Box>
+
+            <Box display='flex' gap={1}>
+              <Button startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading.any}>
+                Actualizar
+              </Button>
+              <Button
+                variant='contained'
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenForm()}
+                disabled={loading.any}
+              >
+                Nueva Cuenta
+              </Button>
+            </Box>
           </Box>
 
-          <Box display='flex' gap={1}>
-            <Button startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading.any}>
-              Actualizar
-            </Button>
-            <Button variant='contained' startIcon={<AddIcon />} onClick={() => handleOpenForm()} disabled={loading.any}>
-              Nueva Cuenta
-            </Button>
-          </Box>
+          {/* Stats Cards */}
+          {stats && (
+            <Grid container spacing={3} mb={3}>
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant='h4' color='primary.main'>
+                      {stats.total}
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Total Cuentas
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant='h4' color='success.main'>
+                      {stats.active}
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Activas
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant='h4' color='text.secondary'>
+                      {stats.inactive}
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Inactivas
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant='h4' color='info.main'>
+                      {Object.keys(stats.byType).length}
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Tipos
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2.4}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center' }}>
+                    <Typography variant='h4' color='warning.main'>
+                      {Object.keys(stats.byLevel).length}
+                    </Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      Niveles
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          )}
         </Box>
 
-        {/* Stats Cards */}
-        {stats && (
-          <Grid container spacing={3} mb={3}>
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant='h4' color='primary.main'>
-                    {stats.total}
-                  </Typography>
-                  <Typography variant='body2' color='text.secondary'>
-                    Total Cuentas
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant='h4' color='success.main'>
-                    {stats.active}
-                  </Typography>
-                  <Typography variant='body2' color='text.secondary'>
-                    Activas
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant='h4' color='text.secondary'>
-                    {stats.inactive}
-                  </Typography>
-                  <Typography variant='body2' color='text.secondary'>
-                    Inactivas
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant='h4' color='info.main'>
-                    {Object.keys(stats.byType).length}
-                  </Typography>
-                  <Typography variant='body2' color='text.secondary'>
-                    Tipos
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2.4}>
-              <Card>
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <Typography variant='h4' color='warning.main'>
-                    {Object.keys(stats.byLevel).length}
-                  </Typography>
-                  <Typography variant='body2' color='text.secondary'>
-                    Niveles
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+        {/* Filters */}
+        <Box mb={3}>
+          <ChartOfAccountsFilters
+            filters={filters}
+            rootAccounts={rootAccounts}
+            onFiltersChange={handleFiltersChange}
+            onClearFilters={handleClearFilters}
+          />
+        </Box>
+
+        {/* Error Display */}
+        {error && (
+          <Alert severity='error' sx={{ mb: 3 }}>
+            {error}
+          </Alert>
         )}
-      </Box>
 
-      {/* Filters */}
-      <Box mb={3}>
-        <ChartOfAccountsFilters
-          filters={filters}
-          rootAccounts={rootAccounts}
-          onFiltersChange={handleFiltersChange}
-          onClearFilters={handleClearFilters}
-        />
-      </Box>
+        {/* Chart of Accounts Table */}
+        <Box mb={3}>
+          <ChartOfAccountsTable
+            accounts={accounts}
+            loading={loading}
+            pagination={pagination}
+            filters={filters}
+            onEdit={handleEdit}
+            onDelete={handleDeleteClick}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+            enableActions={true}
+          />
+        </Box>
 
-      {/* Error Display */}
-      {error && (
-        <Alert severity='error' sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+        {/* Chart of Accounts Form Dialog */}
+        <ChartOfAccountsForm open={isFormOpen} onClose={handleCloseForm} account={selectedAccount} mode={formMode} />
 
-      {/* Chart of Accounts Table */}
-      <Box mb={3}>
-        <ChartOfAccountsTable
-          accounts={accounts}
-          loading={loading}
-          pagination={pagination}
-          filters={filters}
-          onEdit={handleEdit}
-          onDelete={handleDeleteClick}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          enableActions={true}
-        />
-      </Box>
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+          <DialogTitle>Confirmar eliminación</DialogTitle>
+          <DialogContent>
+            ¿Estás seguro de que deseas eliminar la cuenta "{accountToDelete?.account_name}"?
+            {accountToDelete?.child_accounts && accountToDelete.child_accounts.length > 0 && (
+              <Alert severity='warning' sx={{ mt: 2 }}>
+                Esta cuenta tiene subcuentas asociadas y no puede ser eliminada.
+              </Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteConfirmOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleConfirmDelete}
+              color='error'
+              variant='contained'
+              disabled={
+                loading.deleting || (accountToDelete?.child_accounts && accountToDelete.child_accounts.length > 0)
+              }
+            >
+              {loading.deleting ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-      {/* Chart of Accounts Form Dialog */}
-      <ChartOfAccountsForm open={isFormOpen} onClose={handleCloseForm} account={selectedAccount} mode={formMode} />
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
-        <DialogTitle>Confirmar eliminación</DialogTitle>
-        <DialogContent>
-          ¿Estás seguro de que deseas eliminar la cuenta "{accountToDelete?.account_name}"?
-          {accountToDelete?.child_accounts && accountToDelete.child_accounts.length > 0 && (
-            <Alert severity='warning' sx={{ mt: 2 }}>
-              Esta cuenta tiene subcuentas asociadas y no puede ser eliminada.
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancelar</Button>
-          <Button
-            onClick={handleConfirmDelete}
-            color='error'
-            variant='contained'
-            disabled={
-              loading.deleting || (accountToDelete?.child_accounts && accountToDelete.child_accounts.length > 0)
-            }
-          >
-            {loading.deleting ? 'Eliminando...' : 'Eliminar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar for notifications */}
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar}>
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Container>
+        {/* Snackbar for notifications */}
+        <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Container>
+    </AuthGuard>
   )
 }
 

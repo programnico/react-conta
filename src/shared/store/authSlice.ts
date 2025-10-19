@@ -15,7 +15,7 @@ import type {
 // Initial state
 const initialState: AuthState = {
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: false, // Volver a false - el loading lo maneja page.tsx
   user: null,
   accessToken: null,
   refreshToken: null,
@@ -165,6 +165,32 @@ const authSlice = createSlice({
       state.requiresVerification = false
       state.verificationToken = null
       state.error = null
+    },
+
+    // Acción para manejar la hidratación de Redux Persist
+    setHydrated: (state, action: PayloadAction<boolean>) => {
+      if (action.payload) {
+        // Redux Persist ha terminado de cargar
+        // Solo cambiar isLoading si no hay tokens (usuario no autenticado)
+        if (!state.accessToken) {
+          state.isLoading = false
+          state.isAuthenticated = false
+        } else {
+          // Si hay token, validarlo
+          state.isLoading = false // Será true durante validación del token
+          state.isAuthenticated = true // Asumir autenticado hasta validar
+        }
+      }
+    },
+
+    // Acción para forzar reset completo del estado (útil para debugging)
+    forceReset: () => {
+      return { ...initialState }
+    },
+
+    // Acción para limpiar solo el estado de loading (útil si se queda bloqueado)
+    clearLoadingState: state => {
+      state.isLoading = false
     }
   },
   extraReducers: builder => {
@@ -270,7 +296,17 @@ const authSlice = createSlice({
 })
 
 // Export actions
-export const { clearError, resetAuth, setUser, setTokens, setLoading, resetLoginStep } = authSlice.actions
+export const {
+  clearError,
+  resetAuth,
+  setUser,
+  setTokens,
+  setLoading,
+  resetLoginStep,
+  setHydrated,
+  forceReset,
+  clearLoadingState
+} = authSlice.actions
 
 // Selectors
 export const selectAuth = (state: { auth: AuthState }) => state.auth
