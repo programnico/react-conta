@@ -20,7 +20,7 @@ interface SecurityProviderProps {
 export function SecurityProvider({ children }: SecurityProviderProps) {
   const { isAuthenticated } = useSelector(selectAuth)
 
-  // Hook que maneja toda la validación de tokens y seguridad (DESACTIVADO temporalmente)
+  // Token validation disabled - handled by AuthGuard
   // useTokenValidator({
   //   validateOnMount: false,
   //   validateOnFocus: true,

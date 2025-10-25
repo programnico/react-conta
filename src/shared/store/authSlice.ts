@@ -183,11 +183,6 @@ const authSlice = createSlice({
       }
     },
 
-    // Acción para forzar reset completo del estado (útil para debugging)
-    forceReset: () => {
-      return { ...initialState }
-    },
-
     // Acción para limpiar solo el estado de loading (útil si se queda bloqueado)
     clearLoadingState: state => {
       state.isLoading = false
@@ -296,17 +291,8 @@ const authSlice = createSlice({
 })
 
 // Export actions
-export const {
-  clearError,
-  resetAuth,
-  setUser,
-  setTokens,
-  setLoading,
-  resetLoginStep,
-  setHydrated,
-  forceReset,
-  clearLoadingState
-} = authSlice.actions
+export const { clearError, resetAuth, setUser, setTokens, setLoading, resetLoginStep, setHydrated, clearLoadingState } =
+  authSlice.actions
 
 // Selectors
 export const selectAuth = (state: { auth: AuthState }) => state.auth

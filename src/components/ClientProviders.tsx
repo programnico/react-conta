@@ -43,13 +43,7 @@ const ClientProviders = (props: Props) => {
 
   return (
     <Provider store={store}>
-      <PersistGate
-        loading={<PersistLoading />}
-        persistor={persistor}
-        onBeforeLift={() => {
-          console.log('PersistGate - Estado cargado, antes de renderizar children')
-        }}
-      >
+      <PersistGate loading={<PersistLoading />} persistor={persistor}>
         <SecurityProvider>
           <PermissionsProvider>
             <VerticalNavProvider>

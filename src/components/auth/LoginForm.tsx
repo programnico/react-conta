@@ -26,7 +26,6 @@ import {
   clearError,
   resetLoginStep,
   clearLoadingState,
-  forceReset,
   selectAuth,
   selectIsLoading,
   selectError,
@@ -53,26 +52,11 @@ const LoginForm = () => {
   })
   const [verificationCode, setVerificationCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [debugInfo, setDebugInfo] = useState(false)
-
-  // Debug: mostrar información del estado
-  useEffect(() => {
-    console.log('LoginForm - Estado auth:', {
-      isAuthenticated,
-      isLoading,
-      loginStep,
-      requiresVerification,
-      hasError: !!error,
-      email: credentials.email,
-      hasPassword: !!credentials.password
-    })
-  }, [isAuthenticated, isLoading, loginStep, requiresVerification, error, credentials])
 
   // Limpiar estado bloqueado si está cargando por más de 10 segundos
   useEffect(() => {
     if (isLoading) {
       const timer = setTimeout(() => {
-        console.log('LoginForm - Limpiando estado de loading bloqueado')
         dispatch(clearLoadingState())
       }, 10000) // 10 segundos
 
@@ -124,14 +108,6 @@ const LoginForm = () => {
     setVerificationCode('')
   }
 
-  // Handle force reset (para debugging)
-  const handleForceReset = () => {
-    console.log('LoginForm - Forzando reset completo del estado')
-    dispatch(forceReset())
-    setCredentials({ email: '', password: '' })
-    setVerificationCode('')
-  }
-
   // Render login step
   const renderLoginStep = () => (
     <form onSubmit={handleLogin}>
@@ -141,13 +117,12 @@ const LoginForm = () => {
           label='Email'
           type='email'
           value={credentials.email}
-          onChange={e => {
-            console.log('Email change:', e.target.value)
+          onChange={e =>
             setCredentials(prev => ({
               ...prev,
               email: e.target.value
             }))
-          }}
+          }
           disabled={isLoading}
           required
           autoComplete='email'
@@ -158,13 +133,12 @@ const LoginForm = () => {
           label='Password'
           type={showPassword ? 'text' : 'password'}
           value={credentials.password}
-          onChange={e => {
-            console.log('Password change:', e.target.value ? '***' : 'empty')
+          onChange={e =>
             setCredentials(prev => ({
               ...prev,
               password: e.target.value
             }))
-          }}
+          }
           disabled={isLoading}
           required
           autoComplete='current-password'
@@ -258,28 +232,6 @@ const LoginForm = () => {
             <Alert severity='error' className='mb-4' onClose={() => dispatch(clearError())}>
               {error}
             </Alert>
-          )}
-
-          {/* Debug panel - solo en desarrollo */}
-          {process.env.NODE_ENV === 'development' && (
-            <Box className='mb-4 p-2 bg-gray-100 rounded text-xs'>
-              <Typography variant='caption' display='block'>
-                Debug: isLoading={isLoading.toString()}, step={loginStep}, auth={isAuthenticated.toString()}
-              </Typography>
-              <Button size='small' onClick={() => setDebugInfo(!debugInfo)} className='mt-1'>
-                {debugInfo ? 'Hide' : 'Show'} Debug
-              </Button>
-              {debugInfo && (
-                <div className='mt-2'>
-                  <Button size='small' color='warning' onClick={handleForceReset} className='mr-2'>
-                    Force Reset
-                  </Button>
-                  <Button size='small' color='secondary' onClick={() => dispatch(clearLoadingState())}>
-                    Clear Loading
-                  </Button>
-                </div>
-              )}
-            </Box>
           )}
 
           {loginStep === 'credentials' && renderLoginStep()}

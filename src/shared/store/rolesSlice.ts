@@ -204,7 +204,7 @@ const rolesSlice = createSlice({
       state.stats = calculateStats(action.payload)
     },
 
-    // Clear loading states (for debugging stuck states)
+    // Clear loading states
     clearLoadingStates: state => {
       state.loading = {
         roles: false,

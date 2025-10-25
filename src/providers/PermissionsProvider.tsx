@@ -29,8 +29,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ childr
       return [...ROLES.GUEST.permissions]
     }
 
-    // TEMPORAL: Asignar permisos de ADMIN para testing hasta que el backend envíe roles
-    // Cambiar esto cuando el backend incluya información de roles/permisos
+    // Default admin permissions until backend provides role-based permissions
     return [...ROLES.ADMIN.permissions]
 
     // Lógica original comentada hasta que el backend envíe roles:
@@ -47,7 +46,7 @@ export const PermissionsProvider: React.FC<PermissionsProviderProps> = ({ childr
 
   const userRole = useMemo(() => {
     if (!isAuthenticated || !user) return 'GUEST'
-    // TEMPORAL: Asignar rol ADMIN para testing
+    // Default admin role until backend provides user roles
     return 'ADMIN'
     // return user.role || 'USER'  // Descomentar cuando el backend envíe roles
   }, [isAuthenticated, user])

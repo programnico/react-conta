@@ -85,7 +85,7 @@
     display: none !important;
   }
 
-  /* HOVER EFFECT: Expandir temporalmente al hacer hover */
+  /* HOVER EFFECT: Expand temporarily on hover */
   &:hover {
     inline-size: 260px !important;
     min-inline-size: 260px !important;

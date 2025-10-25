@@ -21,9 +21,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // TEMPORAL: Desactivar validación del middleware
-  // El sistema actual usa localStorage + Redux, no cookies
-  // La protección real se hace con AuthGuard en cada página
+  // Middleware validation disabled
+  // Current system uses localStorage + Redux, not cookies
+  // Real protection is handled by AuthGuard on each page
 
   // TODO: Implementar validación de cookies cuando se migre el token storage
   // const token = request.cookies.get('auth_token')?.value ||

@@ -148,7 +148,7 @@ export const ChartOfAccountsForm = ({ open, onClose, account, mode }: ChartOfAcc
       }
       onClose()
     } catch (error) {
-      console.error('Error saving account:', error)
+      // Error handled by global error handling
     }
   }
 

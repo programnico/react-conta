@@ -57,7 +57,7 @@ export const ChartOfAccountsActions = ({ selectedAccount, onAccountUpdated }: Ch
         setAccountToDelete(null)
         onAccountUpdated?.()
       } catch (error) {
-        console.error('Error deleting account:', error)
+        // Error handled by global error handling
       }
     }
   }

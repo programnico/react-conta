@@ -18,11 +18,9 @@ const HomePage = () => {
           const parsed = JSON.parse(persistedState)
           if (parsed.auth) {
             const authState = JSON.parse(parsed.auth)
-            console.log('Estado de auth en localStorage:', authState)
 
             // Si tiene token y está autenticado, ir al dashboard
             if (authState.isAuthenticated && authState.accessToken) {
-              console.log('Usuario autenticado - Redirigiendo a dashboard')
               setIsRedirecting(true)
               router.replace('/dashboard')
               return
@@ -31,11 +29,9 @@ const HomePage = () => {
         }
 
         // Si no está autenticado o no hay datos, ir al login
-        console.log('Usuario no autenticado - Redirigiendo a login')
         setIsRedirecting(true)
         router.replace('/login')
       } catch (error) {
-        console.error('Error verificando autenticación:', error)
         // En caso de error, ir al login por seguridad
         setIsRedirecting(true)
         router.replace('/login')
