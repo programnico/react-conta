@@ -108,6 +108,15 @@ export const MENU_CONFIG: MenuItem[] = [
     permissions: [PERMISSIONS.CHART_OF_ACCOUNTS.VIEW],
     showInMenu: true,
     order: 3.8
+  },
+  {
+    id: 'users',
+    label: 'Gestión de Usuarios',
+    path: ROUTES.PROTECTED.USERS,
+    icon: 'ri-user-line',
+    permissions: [PERMISSIONS.USERS.VIEW],
+    showInMenu: true,
+    order: 3.9
   }
   // {
   //   id: 'general',

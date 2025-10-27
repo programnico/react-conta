@@ -24,7 +24,9 @@ export const ROUTES = {
     // Products Module
     PRODUCTS: '/products', // Ruta: (modules)/products
     // Chart of Accounts Module
-    CHART_OF_ACCOUNTS: '/chart-of-accounts' // Ruta: (modules)/chart-of-accounts
+    CHART_OF_ACCOUNTS: '/chart-of-accounts', // Ruta: (modules)/chart-of-accounts
+    // Users Module
+    USERS: '/users' // Ruta: (modules)/users
   }
 } as const
 
@@ -103,6 +105,14 @@ export const ROUTE_CONFIG = {
     permissions: [PERMISSIONS.CHART_OF_ACCOUNTS.VIEW],
     showInMenu: true,
     icon: 'ri-account-box-line'
+  },
+
+  [ROUTES.PROTECTED.USERS]: {
+    public: false,
+    title: 'Gestión de Usuarios',
+    permissions: [PERMISSIONS.USERS.VIEW],
+    showInMenu: true,
+    icon: 'ri-user-line'
   }
 } as const
 

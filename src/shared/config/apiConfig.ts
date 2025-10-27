@@ -111,6 +111,16 @@ export const API_ENDPOINTS = {
     SAVE: '/chart-of-accounts/save',
     DELETE: '/chart-of-accounts',
     DETAIL: '/chart-of-accounts'
+  },
+
+  /**
+   * User management endpoints
+   */
+  USERS: {
+    LIST: '/users',
+    SAVE: '/users/save',
+    DELETE: '/users',
+    DETAIL: '/users'
   }
 }
 

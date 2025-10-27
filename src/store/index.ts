@@ -12,13 +12,14 @@ import purchaseReducer from './slices/purchaseSlice'
 import supplierReducer from './slices/supplierSlice'
 import productReducer from './slices/productSlice'
 import chartOfAccountsReducer from './slices/chartOfAccountsSlice'
+import usersReducer from './slices/usersSlice'
 
 // Persist configuration
 const persistConfig = {
   key: 'root',
   version: 1, // Keep version 1 to preserve existing sessions
   storage,
-  whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products', 'chartOfAccounts'] // Persist auth, roles, purchases, suppliers, products and chartOfAccounts state
+  whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products', 'chartOfAccounts', 'users'] // Persist auth, roles, purchases, suppliers, products, chartOfAccounts and users state
 }
 
 // Root reducer with modular structure
@@ -31,7 +32,8 @@ const rootReducer = combineReducers({
   purchases: purchaseReducer,
   suppliers: supplierReducer,
   products: productReducer,
-  chartOfAccounts: chartOfAccountsReducer
+  chartOfAccounts: chartOfAccountsReducer,
+  users: usersReducer
   // Future modules:
   // accounting: accountingReducer,
   // administration: administrationReducer
