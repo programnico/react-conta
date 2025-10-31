@@ -1,8 +1,7 @@
 // app/(modules)/products/page.tsx
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useState } from 'react'
 import {
   Container,
   Typography,
@@ -11,7 +10,6 @@ import {
   Grid,
   Card,
   CardContent,
-  Pagination,
   Alert,
   Snackbar,
   Dialog,
@@ -31,12 +29,10 @@ import { useProductsRedux } from '@/features/product/hooks/useProductsRedux'
 import ProductForm from '@/features/product/components/ProductForm'
 import ProductsTable from '@/features/product/components/ProductsTable'
 import ProductFilters from '@/features/product/components/ProductFilters'
+import SmartPagination from '@/components/pagination/SmartPagination'
 import type { Product, CreateProductRequest } from '@/features/product/types'
 
 const ProductsPage = () => {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -47,13 +43,7 @@ const ProductsPage = () => {
     severity: 'success' as 'success' | 'error' | 'warning' | 'info'
   })
 
-  // Get URL parameters
-  const urlPage = Number(searchParams.get('page')) || 1
-  const urlPerPage = Number(searchParams.get('per_page')) || 15
-  const urlSearch = searchParams.get('search') || ''
-  const urlCategory = searchParams.get('category') || ''
-  const urlIsActive = searchParams.get('is_active')
-
+  // Redux-based state management (no URL dependencies)
   const {
     products,
     loading,
@@ -65,55 +55,20 @@ const ProductsPage = () => {
     createProduct,
     updateProduct,
     deleteProduct,
-    setFilters,
-    clearFilters,
     searchProducts,
     refreshData,
-    forceResetLoadingStates
+    forceResetLoadingStates,
+    // New pagination actions
+    goToPage,
+    changePageSize,
+    setFiltersAndGoToFirstPage
   } = useProductsRedux({
-    autoLoad: false, // We'll manually load with URL params
-    pageSize: urlPerPage,
-    initialFilters: {
-      search: urlSearch,
-      category: urlCategory,
-      is_active: urlIsActive === 'true' ? true : urlIsActive === 'false' ? false : undefined
-    }
+    autoLoad: true, // Auto-load with default settings
+    pageSize: 15,
+    initialFilters: {}
   })
 
   const isEditing = Boolean(selectedProduct)
-
-  // Load data based on URL parameters
-  useEffect(() => {
-    const urlFilters = {
-      search: urlSearch,
-      category: urlCategory,
-      is_active: urlIsActive === 'true' ? true : urlIsActive === 'false' ? false : undefined
-    }
-
-    loadProducts(urlPage, urlFilters)
-  }, [urlPage, urlPerPage, urlSearch, urlCategory, urlIsActive, loadProducts])
-
-  // Function to update URL parameters
-  const updateUrlParams = (page: number, newFilters?: any) => {
-    const params = new URLSearchParams()
-
-    if (page > 1) params.set('page', page.toString())
-    if (urlPerPage !== 15) params.set('per_page', urlPerPage.toString())
-
-    const currentFilters = newFilters || filters
-    if (currentFilters.search) params.set('search', currentFilters.search)
-    if (currentFilters.category) params.set('category', currentFilters.category)
-    if (currentFilters.is_active !== undefined) params.set('is_active', currentFilters.is_active.toString())
-
-    // Always use relative path for current page
-    const queryString = params.toString()
-    const url = queryString ? `?${queryString}` : ''
-
-    const currentPath = window.location.pathname
-    const finalUrl = `${currentPath}${url}`
-
-    router.replace(finalUrl, { scroll: false })
-  }
 
   // Handlers
   const handleOpenForm = (product?: Product) => {
@@ -192,40 +147,13 @@ const ProductsPage = () => {
     setProductToDelete(null)
   }
 
-  const handlePageChange = async (event: React.ChangeEvent<unknown>, page: number) => {
-    // Only update URL if it's different from current page
-    if (page !== urlPage) {
-      updateUrlParams(page)
-    }
-    // Note: loadProducts will be called by the useEffect when URL changes
-  }
-
-  const handlePageSizeChange = (event: any) => {
-    const newPageSize = Number(event.target.value)
-
-    // Update URL with new page size and reset to page 1
-    const params = new URLSearchParams()
-    params.set('per_page', newPageSize.toString())
-
-    // Keep current filters
-    if (filters.search) params.set('search', filters.search)
-    if (filters.category) params.set('category', filters.category)
-    if (filters.is_active !== undefined) params.set('is_active', filters.is_active.toString())
-
-    const currentPath = window.location.pathname
-    const queryString = params.toString()
-    const finalUrl = `${currentPath}?${queryString}`
-
-    router.replace(finalUrl, { scroll: false })
-  }
-
+  // Pure Redux handlers (no URL manipulation)
   const handleRefresh = async () => {
     await refreshData()
   }
 
   const handleFiltersChange = (newFilters: any) => {
-    setFilters(newFilters)
-    updateUrlParams(1, newFilters) // Reset to page 1 when filters change
+    setFiltersAndGoToFirstPage(newFilters)
   }
 
   const handleCloseSnackbar = () => {
@@ -354,40 +282,20 @@ const ProductsPage = () => {
         <ProductsTable products={products} onEdit={handleOpenForm} onDelete={handleDeleteClick} loading={loading.any} />
       </Box>
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <Box display='flex' justifyContent='space-between' alignItems='center' mt={3}>
-          <Stack direction='row' spacing={2} alignItems='center'>
-            <Typography variant='body2' color='text.secondary'>
-              Elementos por página:
-            </Typography>
-            <FormControl size='small'>
-              <Select value={pagination.perPage} onChange={handlePageSizeChange} disabled={loading.any}>
-                {[5, 10, 15, 25, 50, 100].map(size => (
-                  <MenuItem key={size} value={size}>
-                    {size}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Typography variant='body2' color='text.secondary'>
-              {`${(pagination.currentPage - 1) * pagination.perPage + 1}-${Math.min(
-                pagination.currentPage * pagination.perPage,
-                pagination.totalItems
-              )} de ${pagination.totalItems}`}
-            </Typography>
-          </Stack>
-
-          <Pagination
-            count={pagination.totalPages}
-            page={pagination.currentPage}
-            onChange={handlePageChange}
-            disabled={loading.any}
-            showFirstButton
-            showLastButton
-            size='large'
-          />
-        </Box>
+      {/* Smart Pagination - Always visible when there's data */}
+      {pagination.totalItems > 0 && (
+        <SmartPagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          perPage={pagination.perPage}
+          onPageChange={goToPage}
+          onPerPageChange={changePageSize}
+          perPageOptions={[5, 10, 15, 25, 50, 100]}
+          disabled={loading.any}
+          showPageInfo={true}
+          pageWindow={3} // Mostrar 3 páginas antes y después de la actual
+        />
       )}
 
       {/* Product Form Dialog */}

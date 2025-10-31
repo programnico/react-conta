@@ -1,6 +1,12 @@
 // features/product/services/productService.ts
 import { apiClient, API_CONFIG } from '@/shared/services/apiClient'
-import type { Product, ProductsApiResponse, CreateProductRequest, GetProductsParams } from '../types'
+import type {
+  Product,
+  ProductsApiResponse,
+  ProductsApiClientResponse,
+  CreateProductRequest,
+  GetProductsParams
+} from '../types'
 
 class ProductService {
   // Using centralized API_CONFIG endpoints
@@ -8,7 +14,7 @@ class ProductService {
   /**
    * Get all products with pagination and filters
    */
-  async getAll(params: GetProductsParams = {}): Promise<any> {
+  async getAll(params: GetProductsParams = {}): Promise<ProductsApiClientResponse> {
     try {
       const queryParams = new URLSearchParams()
 
@@ -115,7 +121,7 @@ class ProductService {
   /**
    * Search products by query
    */
-  async search(query: string, filters: any = {}): Promise<ProductsApiResponse> {
+  async search(query: string, filters: any = {}): Promise<ProductsApiClientResponse> {
     try {
       const params = {
         search: query,

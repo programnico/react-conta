@@ -11,7 +11,10 @@ import {
   clearProductFilters,
   clearProductError,
   resetProducts,
-  resetProductLoadingStates
+  resetProductLoadingStates,
+  setCurrentPage,
+  setPageSize,
+  setFiltersAndResetPage
 } from '@/store/slices/productSlice'
 import {
   selectProducts,
@@ -70,6 +73,11 @@ interface UseProductsReturn {
   refreshData: () => Promise<void>
   forceResetLoadingStates: () => void
 
+  // Pagination Actions (Redux-only, no URL manipulation)
+  goToPage: (page: number) => void
+  changePageSize: (size: number) => void
+  setFiltersAndGoToFirstPage: (filters: ProductFilters) => void
+
   // Utilities
   clearError: () => void
   getProductById: (id: number) => Product | undefined
@@ -106,17 +114,18 @@ export function useProductsRedux(options: UseProductsOptions = {}): UseProductsR
   }, [loading])
 
   const loadProducts = useCallback(
-    async (page: number = 1, newFilters?: ProductFilters) => {
+    async (page: number = 1, newFilters?: ProductFilters, customPageSize?: number) => {
       const currentFilters = newFilters || filters
+      const currentPageSize = customPageSize || pagination.perPage || pageSize
       await dispatch(
         fetchProducts({
           page,
           filters: currentFilters,
-          pageSize
+          pageSize: currentPageSize
         })
       ).unwrap()
     },
-    [dispatch, pageSize, filters]
+    [dispatch, pageSize, filters, pagination.perPage]
   )
 
   const createProduct = useCallback(
@@ -151,19 +160,20 @@ export function useProductsRedux(options: UseProductsOptions = {}): UseProductsR
   )
 
   const refreshData = useCallback(async () => {
-    await loadProducts(pagination.currentPage, filters)
-  }, [loadProducts, pagination.currentPage, filters])
+    await loadProducts(pagination.currentPage, filters, pagination.perPage)
+  }, [loadProducts, pagination.currentPage, filters, pagination.perPage])
 
   const searchProductsCallback = useCallback(
     async (query: string, searchFilters?: ProductFilters) => {
       await dispatch(
         searchProducts({
           query,
-          filters: searchFilters || filters
+          filters: searchFilters || filters,
+          pageSize: pagination.perPage || pageSize
         })
       ).unwrap()
     },
-    [dispatch, pageSize]
+    [dispatch, pageSize, pagination.perPage, filters]
   )
 
   const forceResetLoadingStates = useCallback(() => {
@@ -185,6 +195,34 @@ export function useProductsRedux(options: UseProductsOptions = {}): UseProductsR
     dispatch(clearProductError())
   }, [dispatch])
 
+  // New pagination actions (Redux-only, no URL manipulation)
+  const goToPage = useCallback(
+    (page: number) => {
+      dispatch(setCurrentPage(page))
+      // Auto-load new page with current page size
+      loadProducts(page, filters, pagination.perPage)
+    },
+    [dispatch, loadProducts, filters, pagination.perPage]
+  )
+
+  const changePageSize = useCallback(
+    (size: number) => {
+      dispatch(setPageSize(size))
+      // Auto-load with new page size (resets to page 1)
+      loadProducts(1, filters, size)
+    },
+    [dispatch, loadProducts, filters]
+  )
+
+  const setFiltersAndGoToFirstPage = useCallback(
+    (newFilters: ProductFilters) => {
+      dispatch(setFiltersAndResetPage(newFilters))
+      // Auto-load with new filters (page 1) and current page size
+      loadProducts(1, newFilters, pagination.perPage)
+    },
+    [dispatch, loadProducts, pagination.perPage]
+  )
+
   // Memoize initialFilters to prevent object recreation
   const memoizedInitialFilters = useMemo(() => initialFilters, [JSON.stringify(initialFilters)])
 
@@ -203,7 +241,7 @@ export function useProductsRedux(options: UseProductsOptions = {}): UseProductsR
         fetchProducts({
           page: 1,
           filters: memoizedInitialFilters,
-          pageSize
+          pageSize: pagination.perPage || pageSize
         })
       )
     }
@@ -228,6 +266,11 @@ export function useProductsRedux(options: UseProductsOptions = {}): UseProductsR
     searchProducts: searchProductsCallback,
     refreshData,
     forceResetLoadingStates,
+
+    // Pagination Actions (Redux-only, no URL manipulation)
+    goToPage,
+    changePageSize,
+    setFiltersAndGoToFirstPage,
 
     // Utilities
     clearError,

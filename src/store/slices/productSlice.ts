@@ -3,7 +3,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 import { productService } from '@/features/product/services/productService'
-import type { Product, ProductsApiResponse, CreateProductRequest, ProductFilters } from '@/features/product/types'
+import type { Product, ProductsApiClientResponse, CreateProductRequest, ProductFilters } from '@/features/product/types'
 
 // Async thunks
 export const fetchProducts = createAsyncThunk(
@@ -15,6 +15,8 @@ export const fetchProducts = createAsyncThunk(
       page,
       per_page: pageSize
     })
+    // El apiClient ya extrae la propiedad 'data' automáticamente,
+    // así que response ya es la estructura de paginación
     return response
   }
 )
@@ -39,10 +41,15 @@ export const deleteProduct = createAsyncThunk('products/deleteProduct', async (i
 
 export const searchProducts = createAsyncThunk(
   'products/searchProducts',
-  async (params: { query: string; filters?: ProductFilters }) => {
-    const { query, filters = {} } = params
-    const response = await productService.search(query, filters)
-    return response.data
+  async (params: { query: string; filters?: ProductFilters; pageSize?: number }) => {
+    const { query, filters = {}, pageSize = 15 } = params
+    const searchFilters = {
+      ...filters,
+      per_page: pageSize
+    }
+    const response = await productService.search(query, searchFilters)
+    // El apiClient ya extrae la propiedad 'data' automáticamente
+    return response
   }
 )
 
@@ -115,6 +122,19 @@ const productSlice = createSlice({
         delete: false,
         search: false
       }
+    },
+    // Nuevas acciones para manejo de paginación
+    setCurrentPage: (state, action: PayloadAction<number>) => {
+      state.pagination.currentPage = action.payload
+    },
+    setPageSize: (state, action: PayloadAction<number>) => {
+      state.pagination.perPage = action.payload
+      state.pagination.currentPage = 1 // Reset to page 1 when changing page size
+    },
+    // Acción combinada para cambiar filtros y resetear página
+    setFiltersAndResetPage: (state, action: PayloadAction<ProductFilters>) => {
+      state.filters = action.payload
+      state.pagination.currentPage = 1 // Reset to page 1 when filters change
     }
   },
   extraReducers: builder => {
@@ -145,9 +165,26 @@ const productSlice = createSlice({
         }
         state.loading.list = false
 
-        // Handle different response structures
-        if (Array.isArray(action.payload)) {
-          // Direct array response
+        // El apiClient extrae automáticamente 'data', así que recibimos directamente la estructura de paginación
+        // Estructura esperada: { current_page, data: [...], last_page, total, per_page, next_page_url, etc. }
+        if (
+          action.payload &&
+          typeof action.payload === 'object' &&
+          'data' in action.payload &&
+          Array.isArray(action.payload.data)
+        ) {
+          // Estructura de paginación estándar (apiClient ya extrajo el nivel superior 'data')
+          state.products = action.payload.data
+          state.pagination = {
+            currentPage: action.payload.current_page || 1,
+            totalPages: action.payload.last_page || 1,
+            totalItems: action.payload.total || 0,
+            perPage: action.payload.per_page || state.pagination.perPage,
+            hasNextPage: action.payload.next_page_url !== null,
+            hasPreviousPage: action.payload.prev_page_url !== null
+          }
+        } else if (Array.isArray(action.payload)) {
+          // Payload es array directo (fallback para compatibilidad)
           state.products = action.payload
           state.pagination = {
             currentPage: 1,
@@ -158,19 +195,8 @@ const productSlice = createSlice({
             hasPreviousPage: false
           }
         } else {
-          // Paginated response structure - apiClient already extracts 'data'
-          state.products = action.payload.products || []
-          const pagination = action.payload.pagination
-          if (pagination) {
-            state.pagination = {
-              currentPage: pagination.current_page,
-              totalPages: pagination.last_page,
-              totalItems: pagination.total,
-              perPage: pagination.per_page,
-              hasNextPage: pagination.has_more_pages,
-              hasPreviousPage: pagination.current_page > 1
-            }
-          }
+          // Fallback a array vacío
+          state.products = []
         }
       })
       .addCase(fetchProducts.rejected, (state, action) => {
@@ -246,16 +272,44 @@ const productSlice = createSlice({
       })
       .addCase(searchProducts.fulfilled, (state, action) => {
         state.loading.search = false
-        state.products = action.payload.products || []
-        const pagination = action.payload.pagination
-        if (pagination) {
+
+        // Usar la misma lógica que fetchProducts para consistencia
+        // El apiClient extrae automáticamente 'data', recibimos la estructura de paginación directamente
+        if (
+          action.payload &&
+          typeof action.payload === 'object' &&
+          'data' in action.payload &&
+          Array.isArray(action.payload.data)
+        ) {
+          state.products = action.payload.data
           state.pagination = {
-            currentPage: pagination.current_page,
-            totalPages: pagination.last_page,
-            totalItems: pagination.total,
-            perPage: pagination.per_page,
-            hasNextPage: pagination.has_more_pages,
-            hasPreviousPage: pagination.current_page > 1
+            currentPage: action.payload.current_page || 1,
+            totalPages: action.payload.last_page || 1,
+            totalItems: action.payload.total || 0,
+            perPage: action.payload.per_page || state.pagination.perPage,
+            hasNextPage: action.payload.next_page_url !== null,
+            hasPreviousPage: action.payload.prev_page_url !== null
+          }
+        } else if (Array.isArray(action.payload)) {
+          // Fallback si es array directo
+          state.products = action.payload
+          state.pagination = {
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: action.payload.length,
+            perPage: action.payload.length,
+            hasNextPage: false,
+            hasPreviousPage: false
+          }
+        } else {
+          state.products = []
+          state.pagination = {
+            currentPage: 1,
+            totalPages: 1,
+            totalItems: 0,
+            perPage: 15,
+            hasNextPage: false,
+            hasPreviousPage: false
           }
         }
       })
@@ -266,7 +320,15 @@ const productSlice = createSlice({
   }
 })
 
-export const { setProductFilters, clearProductFilters, clearProductError, resetProducts, resetProductLoadingStates } =
-  productSlice.actions
+export const {
+  setProductFilters,
+  clearProductFilters,
+  clearProductError,
+  resetProducts,
+  resetProductLoadingStates,
+  setCurrentPage,
+  setPageSize,
+  setFiltersAndResetPage
+} = productSlice.actions
 
 export default productSlice.reducer

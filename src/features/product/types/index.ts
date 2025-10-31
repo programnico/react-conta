@@ -37,22 +37,40 @@ export interface ProductFilters {
   max_price?: number
 }
 
-export interface ProductsApiResponse {
-  status: string
-  message: string
-  data: {
-    products: Product[]
-    pagination: {
-      current_page: number
-      per_page: number
-      total: number
-      last_page: number
-      from: number
-      to: number
-      has_more_pages: boolean
-    }
-  }
+// Estructura estándar para enlaces de paginación
+export interface PaginationLinks {
+  url: string | null
+  label: string
+  page: number | null
+  active: boolean
 }
+
+// Estructura estándar de respuesta paginada (igual que purchases y suppliers)
+export interface PaginatedResponse<T> {
+  current_page: number
+  data: T[]
+  first_page_url: string
+  from: number
+  last_page: number
+  last_page_url: string
+  links: PaginationLinks[]
+  next_page_url: string | null
+  path: string
+  per_page: number
+  prev_page_url: string | null
+  to: number
+  total: number
+}
+
+// Respuesta API completa (antes de que apiClient extraiga 'data')
+export interface ProductsApiResponse {
+  status: 'success' | 'error'
+  message: string
+  data: PaginatedResponse<Product>
+}
+
+// Respuesta después de que apiClient extrae 'data' automáticamente
+export type ProductsApiClientResponse = PaginatedResponse<Product>
 
 export interface ProductStats {
   total: number
