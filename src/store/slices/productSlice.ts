@@ -3,97 +3,153 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 import { productService } from '@/features/product/services/productService'
-import type { Product, ProductsApiClientResponse, CreateProductRequest, ProductFilters } from '@/features/product/types'
+import type {
+  Product,
+  ProductsApiClientResponse,
+  ProductsApiResponse,
+  CreateProductRequest,
+  ProductFilters
+} from '@/features/product/types'
 
 // Async thunks
-export const fetchProducts = createAsyncThunk(
-  'products/fetchProducts',
-  async (params: { page?: number; filters?: ProductFilters; pageSize?: number }) => {
+export const fetchProducts = createAsyncThunk<
+  ProductsApiResponse | ProductsApiClientResponse, // Tipo de retorno: puede ser cualquiera de los dos
+  { page?: number; filters?: ProductFilters; pageSize?: number }
+>('products/fetchProducts', async (params, { rejectWithValue }) => {
+  try {
     const { page = 1, filters = {}, pageSize = 15 } = params
     const response = await productService.getAll({
-      ...filters,
       page,
-      per_page: pageSize
+      per_page: pageSize,
+      ...filters
     })
-    // El apiClient ya extrae la propiedad 'data' automáticamente,
-    // así que response ya es la estructura de paginación
     return response
+  } catch (error: any) {
+    console.error('Error fetching products:', error)
+    return rejectWithValue(error.message || 'Error al obtener productos')
+  }
+})
+
+export const createProduct = createAsyncThunk(
+  'products/createProduct',
+  async (data: CreateProductRequest, { rejectWithValue }) => {
+    try {
+      const product = await productService.create(data)
+      return product
+    } catch (error: any) {
+      // Si es un ApiError con errores de validación, los incluimos
+      if (error.errors) {
+        return rejectWithValue({
+          message: error.message || 'Error al crear producto',
+          validationErrors: error.errors
+        })
+      }
+      return rejectWithValue({
+        message: error.message || 'Error al crear producto',
+        validationErrors: null
+      })
+    }
   }
 )
-
-export const createProduct = createAsyncThunk('products/createProduct', async (data: CreateProductRequest) => {
-  const product = await productService.create(data)
-  return product
-})
 
 export const updateProduct = createAsyncThunk(
   'products/updateProduct',
-  async ({ id, data }: { id: number; data: CreateProductRequest }) => {
-    const product = await productService.update(id, data)
-    return product
+  async ({ id, data }: { id: number; data: CreateProductRequest }, { rejectWithValue }) => {
+    try {
+      const product = await productService.update(id, data)
+      return product
+    } catch (error: any) {
+      // Si es un ApiError con errores de validación, los incluimos
+      if (error.errors) {
+        return rejectWithValue({
+          message: error.message || 'Error al actualizar producto',
+          validationErrors: error.errors
+        })
+      }
+      return rejectWithValue({
+        message: error.message || 'Error al actualizar producto',
+        validationErrors: null
+      })
+    }
   }
 )
 
-export const deleteProduct = createAsyncThunk('products/deleteProduct', async (id: number) => {
-  await productService.delete(id)
-  return id
+export const deleteProduct = createAsyncThunk('products/deleteProduct', async (id: number, { rejectWithValue }) => {
+  try {
+    await productService.delete(id)
+    return id
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Error al eliminar producto')
+  }
 })
 
-export const searchProducts = createAsyncThunk(
-  'products/searchProducts',
-  async (params: { query: string; filters?: ProductFilters; pageSize?: number }) => {
+export const searchProducts = createAsyncThunk<
+  ProductsApiResponse | ProductsApiClientResponse,
+  { query: string; filters?: ProductFilters; pageSize?: number }
+>('products/searchProducts', async (params, { rejectWithValue }) => {
+  try {
     const { query, filters = {}, pageSize = 15 } = params
     const searchFilters = {
       ...filters,
       per_page: pageSize
     }
     const response = await productService.search(query, searchFilters)
-    // El apiClient ya extrae la propiedad 'data' automáticamente
     return response
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Error al buscar productos')
   }
-)
+})
+
+// Helper function para extraer datos de paginación de la respuesta
+const extractPaginationData = (payload: ProductsApiResponse | ProductsApiClientResponse) => {
+  // Caso 1: Respuesta completa del API { status, message, data: {...} }
+  if ('status' in payload && 'data' in payload && payload.data && typeof payload.data === 'object') {
+    return payload.data
+  }
+  // Caso 2: ApiClient ya extrajo 'data' - solo estructura de paginación { current_page, data: [], ... }
+  else if ('current_page' in payload && 'data' in payload) {
+    return payload
+  }
+  return null
+}
 
 // Initial state
 interface ProductState {
   products: Product[]
-  loading: {
-    list: boolean
-    create: boolean
-    update: boolean
-    delete: boolean
-    search: boolean
-  }
+  loading: boolean
   error: string | null
+  validationErrors: Record<string, string[]> | null
   filters: ProductFilters
+  selectedProduct: Product | null
+  needsReload: boolean
+  // Estado de paginación local (separado de meta del servidor)
   pagination: {
     currentPage: number
-    totalPages: number
-    totalItems: number
-    perPage: number
-    hasNextPage: boolean
-    hasPreviousPage: boolean
+    rowsPerPage: number
   }
+  meta: {
+    current_page: number
+    from: number
+    last_page: number
+    per_page: number
+    to: number
+    total: number
+  } | null
 }
 
 const initialState: ProductState = {
   products: [],
-  loading: {
-    list: false,
-    create: false,
-    update: false,
-    delete: false,
-    search: false
-  },
+  loading: false,
   error: null,
+  validationErrors: null,
   filters: {},
+  selectedProduct: null,
+  needsReload: false,
   pagination: {
     currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-    perPage: 15,
-    hasNextPage: false,
-    hasPreviousPage: false
-  }
+    rowsPerPage: 15
+  },
+  meta: null
 }
 
 // Slice
@@ -101,234 +157,180 @@ const productSlice = createSlice({
   name: 'products',
   initialState,
   reducers: {
-    setProductFilters: (state, action: PayloadAction<ProductFilters>) => {
-      state.filters = action.payload
-    },
-    clearProductFilters: state => {
-      state.filters = {}
-    },
-    clearProductError: state => {
+    clearError: state => {
       state.error = null
     },
-    resetProducts: state => {
-      state.products = []
-      state.pagination = initialState.pagination
+    clearValidationErrors: state => {
+      state.validationErrors = null
     },
-    resetProductLoadingStates: state => {
-      state.loading = {
-        list: false,
-        create: false,
-        update: false,
-        delete: false,
-        search: false
-      }
+    setSelectedProduct: (state, action: PayloadAction<Product | null>) => {
+      state.selectedProduct = action.payload
     },
-    // Nuevas acciones para manejo de paginación
+    clearSelectedProduct: state => {
+      state.selectedProduct = null
+    },
+    setFilters: (state, action: PayloadAction<ProductFilters>) => {
+      state.filters = action.payload
+    },
+    clearFilters: state => {
+      state.filters = {}
+    },
+    setNeedsReload: (state, action: PayloadAction<boolean>) => {
+      state.needsReload = action.payload
+    },
     setCurrentPage: (state, action: PayloadAction<number>) => {
       state.pagination.currentPage = action.payload
     },
-    setPageSize: (state, action: PayloadAction<number>) => {
-      state.pagination.perPage = action.payload
-      state.pagination.currentPage = 1 // Reset to page 1 when changing page size
+    setRowsPerPage: (state, action: PayloadAction<number>) => {
+      state.pagination.rowsPerPage = action.payload
+      // Resetear a página 1 cuando cambie el tamaño de página
+      state.pagination.currentPage = 1
     },
-    // Acción combinada para cambiar filtros y resetear página
-    setFiltersAndResetPage: (state, action: PayloadAction<ProductFilters>) => {
-      state.filters = action.payload
-      state.pagination.currentPage = 1 // Reset to page 1 when filters change
+    resetPagination: state => {
+      state.pagination.currentPage = 1
     }
   },
   extraReducers: builder => {
-    // Fetch products
     builder
+      // Fetch products
       .addCase(fetchProducts.pending, state => {
-        if (typeof state.loading !== 'object' || state.loading === null) {
-          state.loading = {
-            list: false,
-            create: false,
-            update: false,
-            delete: false,
-            search: false
-          }
-        }
-        state.loading.list = true
+        state.loading = true
         state.error = null
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
-        if (typeof state.loading !== 'object' || state.loading === null) {
-          state.loading = {
-            list: false,
-            create: false,
-            update: false,
-            delete: false,
-            search: false
-          }
-        }
-        state.loading.list = false
+        state.loading = false
+        state.needsReload = false // Limpiar flag de recarga
 
-        // El apiClient extrae automáticamente 'data', así que recibimos directamente la estructura de paginación
-        // Estructura esperada: { current_page, data: [...], last_page, total, per_page, next_page_url, etc. }
-        if (
-          action.payload &&
-          typeof action.payload === 'object' &&
-          'data' in action.payload &&
-          Array.isArray(action.payload.data)
-        ) {
-          // Estructura de paginación estándar (apiClient ya extrajo el nivel superior 'data')
-          state.products = action.payload.data
-          state.pagination = {
-            currentPage: action.payload.current_page || 1,
-            totalPages: action.payload.last_page || 1,
-            totalItems: action.payload.total || 0,
-            perPage: action.payload.per_page || state.pagination.perPage,
-            hasNextPage: action.payload.next_page_url !== null,
-            hasPreviousPage: action.payload.prev_page_url !== null
-          }
-        } else if (Array.isArray(action.payload)) {
-          // Payload es array directo (fallback para compatibilidad)
-          state.products = action.payload
-          state.pagination = {
-            currentPage: 1,
-            totalPages: 1,
-            totalItems: action.payload.length,
-            perPage: action.payload.length,
-            hasNextPage: false,
-            hasPreviousPage: false
+        const paginationData = extractPaginationData(action.payload)
+
+        if (paginationData && 'data' in paginationData && Array.isArray(paginationData.data)) {
+          state.products = paginationData.data
+          state.meta = {
+            current_page: paginationData.current_page || 1,
+            from: paginationData.from || 0,
+            last_page: paginationData.last_page || 1,
+            per_page: paginationData.per_page || 15,
+            to: paginationData.to || 0,
+            total: paginationData.total || 0
           }
         } else {
-          // Fallback a array vacío
+          // Fallback
+          console.error('Unexpected products response structure:', action.payload)
           state.products = []
+          state.meta = null
         }
       })
       .addCase(fetchProducts.rejected, (state, action) => {
-        if (typeof state.loading !== 'object' || state.loading === null) {
-          state.loading = {
-            list: false,
-            create: false,
-            update: false,
-            delete: false,
-            search: false
-          }
-        }
-        state.loading.list = false
-        state.error = action.error.message || 'Error fetching products'
+        state.loading = false
+        state.error = action.payload as string
       })
-
-    // Create product
-    builder
+      // Create product
       .addCase(createProduct.pending, state => {
-        state.loading.create = true
+        state.loading = true
         state.error = null
+        state.validationErrors = null
       })
       .addCase(createProduct.fulfilled, (state, action) => {
-        state.loading.create = false
-        // Add new product to the beginning of the list
-        state.products.unshift(action.payload)
-        state.pagination.totalItems += 1
+        state.loading = false
+        state.error = null
+        state.validationErrors = null
+        // Marcar que necesita recarga
+        state.needsReload = true
       })
       .addCase(createProduct.rejected, (state, action) => {
-        state.loading.create = false
-        state.error = action.error.message || 'Error creating product'
-      })
-
-    // Update product
-    builder
-      .addCase(updateProduct.pending, state => {
-        state.loading.update = true
-        state.error = null
-      })
-      .addCase(updateProduct.fulfilled, (state, action) => {
-        state.loading.update = false
-        const index = state.products.findIndex(p => p.id === action.payload.id)
-        if (index !== -1) {
-          state.products[index] = action.payload
+        state.loading = false
+        const payload = action.payload as any
+        if (payload && typeof payload === 'object') {
+          state.error = payload.message
+          state.validationErrors = payload.validationErrors
+        } else {
+          state.error = payload as string
+          state.validationErrors = null
         }
       })
-      .addCase(updateProduct.rejected, (state, action) => {
-        state.loading.update = false
-        state.error = action.error.message || 'Error updating product'
+      // Update product
+      .addCase(updateProduct.pending, state => {
+        state.loading = true
+        state.error = null
+        state.validationErrors = null
       })
-
-    // Delete product
-    builder
+      .addCase(updateProduct.fulfilled, (state, action) => {
+        state.loading = false
+        state.error = null
+        state.validationErrors = null
+        // Marcar que necesita recarga para mantener consistencia
+        state.needsReload = true
+      })
+      .addCase(updateProduct.rejected, (state, action) => {
+        state.loading = false
+        const payload = action.payload as any
+        if (payload && typeof payload === 'object') {
+          state.error = payload.message
+          state.validationErrors = payload.validationErrors
+        } else {
+          state.error = payload as string
+          state.validationErrors = null
+        }
+      })
+      // Delete product
       .addCase(deleteProduct.pending, state => {
-        state.loading.delete = true
+        state.loading = true
         state.error = null
       })
       .addCase(deleteProduct.fulfilled, (state, action) => {
-        state.loading.delete = false
-        state.products = state.products.filter(p => p.id !== action.payload)
-        state.pagination.totalItems -= 1
+        state.loading = false
+        // Marcar que necesita recarga
+        state.needsReload = true
       })
       .addCase(deleteProduct.rejected, (state, action) => {
-        state.loading.delete = false
-        state.error = action.error.message || 'Error deleting product'
+        state.loading = false
+        state.error = action.payload as string
       })
-
-    // Search products
-    builder
+      // Search products
       .addCase(searchProducts.pending, state => {
-        state.loading.search = true
+        state.loading = true
         state.error = null
       })
       .addCase(searchProducts.fulfilled, (state, action) => {
-        state.loading.search = false
+        state.loading = false
 
-        // Usar la misma lógica que fetchProducts para consistencia
-        // El apiClient extrae automáticamente 'data', recibimos la estructura de paginación directamente
-        if (
-          action.payload &&
-          typeof action.payload === 'object' &&
-          'data' in action.payload &&
-          Array.isArray(action.payload.data)
-        ) {
-          state.products = action.payload.data
-          state.pagination = {
-            currentPage: action.payload.current_page || 1,
-            totalPages: action.payload.last_page || 1,
-            totalItems: action.payload.total || 0,
-            perPage: action.payload.per_page || state.pagination.perPage,
-            hasNextPage: action.payload.next_page_url !== null,
-            hasPreviousPage: action.payload.prev_page_url !== null
-          }
-        } else if (Array.isArray(action.payload)) {
-          // Fallback si es array directo
-          state.products = action.payload
-          state.pagination = {
-            currentPage: 1,
-            totalPages: 1,
-            totalItems: action.payload.length,
-            perPage: action.payload.length,
-            hasNextPage: false,
-            hasPreviousPage: false
+        const paginationData = extractPaginationData(action.payload)
+
+        if (paginationData && 'data' in paginationData && Array.isArray(paginationData.data)) {
+          state.products = paginationData.data
+          state.meta = {
+            current_page: paginationData.current_page || 1,
+            from: paginationData.from || 0,
+            last_page: paginationData.last_page || 1,
+            per_page: paginationData.per_page || 15,
+            to: paginationData.to || 0,
+            total: paginationData.total || 0
           }
         } else {
+          // Fallback
+          console.error('Unexpected search products response structure:', action.payload)
           state.products = []
-          state.pagination = {
-            currentPage: 1,
-            totalPages: 1,
-            totalItems: 0,
-            perPage: 15,
-            hasNextPage: false,
-            hasPreviousPage: false
-          }
+          state.meta = null
         }
       })
       .addCase(searchProducts.rejected, (state, action) => {
-        state.loading.search = false
-        state.error = action.error.message || 'Error searching products'
+        state.loading = false
+        state.error = action.payload as string
       })
   }
 })
 
 export const {
-  setProductFilters,
-  clearProductFilters,
-  clearProductError,
-  resetProducts,
-  resetProductLoadingStates,
+  clearError,
+  clearValidationErrors,
+  setSelectedProduct,
+  clearSelectedProduct,
+  setFilters,
+  clearFilters,
+  setNeedsReload,
   setCurrentPage,
-  setPageSize,
-  setFiltersAndResetPage
+  setRowsPerPage,
+  resetPagination
 } = productSlice.actions
 
 export default productSlice.reducer

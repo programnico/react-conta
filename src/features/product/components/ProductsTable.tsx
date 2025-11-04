@@ -1,7 +1,7 @@
 // features/product/components/ProductsTable.tsx
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Table,
   TableBody,
@@ -20,16 +20,74 @@ import {
 } from '@mui/material'
 import { Edit as EditIcon, Delete as DeleteIcon, Inventory as InventoryIcon } from '@mui/icons-material'
 
-import type { Product } from '../types'
+import SmartPagination from '@/components/pagination/SmartPagination'
+import { useProductsRedux } from '../hooks/useProductsRedux'
+import type { Product, ProductFilters } from '../types'
 
 interface ProductsTableProps {
-  products: Product[]
   onEdit: (product: Product) => void
   onDelete: (product: Product) => void
-  loading?: boolean
+  filters?: ProductFilters
 }
 
-const ProductsTableComponent: React.FC<ProductsTableProps> = ({ products, onEdit, onDelete, loading = false }) => {
+const ProductsTableComponent: React.FC<ProductsTableProps> = ({ onEdit, onDelete, filters = {} }) => {
+  // Redux state - Ya no necesitamos estado local
+  const {
+    products,
+    loading,
+    meta,
+    needsReload,
+    pagination,
+    loadProducts,
+    setNeedsReload,
+    setCurrentPage,
+    setRowsPerPage,
+    resetPagination
+  } = useProductsRedux()
+
+  const { currentPage, rowsPerPage } = pagination
+
+  // Memoizar filtros para evitar dependencias circulares
+  const filtersString = JSON.stringify(filters)
+
+  // Memoizar la función de carga para evitar dependencias circulares
+  const loadProductsWithFilters = useCallback(() => {
+    loadProducts(filters)
+  }, [loadProducts, filtersString])
+
+  // Load initial data and reload when filters or pagination change
+  useEffect(() => {
+    loadProductsWithFilters()
+  }, [currentPage, rowsPerPage, loadProductsWithFilters])
+
+  // Recargar productos cuando se marque needsReload
+  useEffect(() => {
+    if (needsReload) {
+      loadProductsWithFilters()
+      setNeedsReload(false)
+    }
+  }, [needsReload, loadProductsWithFilters, setNeedsReload])
+
+  // Reset pagination cuando cambien los filtros
+  useEffect(() => {
+    resetPagination()
+  }, [filtersString, resetPagination])
+
+  // Ajustar página si está fuera del rango disponible
+  useEffect(() => {
+    if (meta && meta.last_page > 0 && currentPage > meta.last_page) {
+      setCurrentPage(meta.last_page)
+    }
+  }, [meta?.last_page, currentPage, setCurrentPage])
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handlePerPageChange = (perPage: number) => {
+    setRowsPerPage(perPage) // Esto ya resetea a página 1 internamente
+  }
   const formatPrice = (price: string | number) => {
     const numPrice = typeof price === 'string' ? parseFloat(price) : price
     return new Intl.NumberFormat('es-US', {
@@ -77,123 +135,143 @@ const ProductsTableComponent: React.FC<ProductsTableProps> = ({ products, onEdit
   }
 
   return (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>Producto</TableCell>
-            <TableCell>Código</TableCell>
-            <TableCell>Categoría</TableCell>
-            <TableCell align='right'>Stock</TableCell>
-            <TableCell align='right'>Precio Costo</TableCell>
-            <TableCell align='right'>Precio Venta</TableCell>
-            <TableCell align='right'>Margen %</TableCell>
-            <TableCell>Estado</TableCell>
-            <TableCell align='center'>Acciones</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {products.map(product => {
-            const stockProps = getStockChipProps(product.stock_quantity)
-            const margin = calculateMargin(product.selling_price, product.cost_price)
+    <Box>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Producto</TableCell>
+              <TableCell>Código</TableCell>
+              <TableCell>Categoría</TableCell>
+              <TableCell align='right'>Stock</TableCell>
+              <TableCell align='right'>Precio Costo</TableCell>
+              <TableCell align='right'>Precio Venta</TableCell>
+              <TableCell align='right'>Margen %</TableCell>
+              <TableCell>Estado</TableCell>
+              <TableCell align='center'>Acciones</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {products.map(product => {
+              const stockProps = getStockChipProps(product.stock_quantity)
+              const margin = calculateMargin(product.selling_price, product.cost_price)
 
-            return (
-              <TableRow key={product.id} hover>
-                <TableCell>
-                  <Box display='flex' alignItems='center' gap={2}>
-                    <Avatar src={product.image_url} alt={product.name} sx={{ width: 40, height: 40 }}>
-                      {product.name.charAt(0).toUpperCase()}
-                    </Avatar>
-                    <Box>
-                      <Typography variant='body2' fontWeight='bold'>
-                        {product.name}
-                      </Typography>
-                      {product.description && (
-                        <Typography
-                          variant='caption'
-                          color='text.secondary'
-                          sx={{
-                            display: '-webkit-box',
-                            WebkitLineClamp: 1,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            maxWidth: 200
-                          }}
-                        >
-                          {product.description}
+              return (
+                <TableRow key={product.id} hover>
+                  <TableCell>
+                    <Box display='flex' alignItems='center' gap={2}>
+                      <Avatar src={product.image_url} alt={product.name} sx={{ width: 40, height: 40 }}>
+                        {product.name.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Box>
+                        <Typography variant='body2' fontWeight='bold'>
+                          {product.name}
                         </Typography>
-                      )}
+                        {product.description && (
+                          <Typography
+                            variant='caption'
+                            color='text.secondary'
+                            sx={{
+                              display: '-webkit-box',
+                              WebkitLineClamp: 1,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              maxWidth: 200
+                            }}
+                          >
+                            {product.description}
+                          </Typography>
+                        )}
+                      </Box>
                     </Box>
-                  </Box>
-                </TableCell>
+                  </TableCell>
 
-                <TableCell>
-                  <Typography variant='body2' fontFamily='monospace'>
-                    {product.product_code}
-                  </Typography>
-                </TableCell>
-
-                <TableCell>
-                  <Chip label={product.category} size='small' variant='outlined' />
-                </TableCell>
-
-                <TableCell align='right'>
-                  <Box display='flex' flexDirection='column' alignItems='flex-end' gap={0.5}>
-                    <Typography variant='body2' fontWeight='bold'>
-                      {formatStock(product.stock_quantity)}
+                  <TableCell>
+                    <Typography variant='body2' fontFamily='monospace'>
+                      {product.product_code}
                     </Typography>
-                    <Chip {...stockProps} size='small' sx={{ fontSize: '0.7rem', height: 20 }} />
-                  </Box>
-                </TableCell>
+                  </TableCell>
 
-                <TableCell align='right'>
-                  <Typography variant='body2'>{formatPrice(product.cost_price)}</Typography>
-                </TableCell>
+                  <TableCell>
+                    <Chip label={product.category} size='small' variant='outlined' />
+                  </TableCell>
 
-                <TableCell align='right'>
-                  <Typography variant='body2' fontWeight='bold'>
-                    {formatPrice(product.selling_price)}
-                  </Typography>
-                </TableCell>
+                  <TableCell align='right'>
+                    <Box display='flex' flexDirection='column' alignItems='flex-end' gap={0.5}>
+                      <Typography variant='body2' fontWeight='bold'>
+                        {formatStock(product.stock_quantity)}
+                      </Typography>
+                      <Chip {...stockProps} size='small' sx={{ fontSize: '0.7rem', height: 20 }} />
+                    </Box>
+                  </TableCell>
 
-                <TableCell align='right'>
-                  <Typography
-                    variant='body2'
-                    color={margin > 30 ? 'success.main' : margin > 15 ? 'warning.main' : 'error.main'}
-                    fontWeight='bold'
-                  >
-                    {margin.toFixed(1)}%
-                  </Typography>
-                </TableCell>
+                  <TableCell align='right'>
+                    <Typography variant='body2'>{formatPrice(product.cost_price)}</Typography>
+                  </TableCell>
 
-                <TableCell>
-                  <Chip
-                    label={product.is_active ? 'Activo' : 'Inactivo'}
-                    color={product.is_active ? 'success' : 'default'}
-                    size='small'
-                  />
-                </TableCell>
+                  <TableCell align='right'>
+                    <Typography variant='body2' fontWeight='bold'>
+                      {formatPrice(product.selling_price)}
+                    </Typography>
+                  </TableCell>
 
-                <TableCell align='center'>
-                  <Box display='flex' justifyContent='center' gap={1}>
-                    <Tooltip title='Editar producto'>
-                      <IconButton size='small' onClick={() => onEdit(product)} disabled={loading}>
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title='Eliminar producto'>
-                      <IconButton size='small' onClick={() => onDelete(product)} disabled={loading} color='error'>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
+                  <TableCell align='right'>
+                    <Typography
+                      variant='body2'
+                      color={margin > 30 ? 'success.main' : margin > 15 ? 'warning.main' : 'error.main'}
+                      fontWeight='bold'
+                    >
+                      {margin.toFixed(1)}%
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell>
+                    <Chip
+                      label={product.is_active ? 'Activo' : 'Inactivo'}
+                      color={product.is_active ? 'success' : 'default'}
+                      size='small'
+                    />
+                  </TableCell>
+
+                  <TableCell align='center'>
+                    <Box display='flex' justifyContent='center' gap={1}>
+                      <Tooltip title='Editar producto'>
+                        <IconButton size='small' onClick={() => onEdit(product)} disabled={loading}>
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title='Eliminar producto'>
+                        <IconButton size='small' onClick={() => onDelete(product)} disabled={loading} color='error'>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Paginador integrado */}
+      {meta && meta.total > 0 && (
+        <Box mt={2}>
+          <SmartPagination
+            currentPage={currentPage}
+            totalPages={meta.last_page}
+            totalItems={meta.total}
+            perPage={rowsPerPage}
+            onPageChange={handlePageChange}
+            onPerPageChange={handlePerPageChange}
+            perPageOptions={[5, 10, 15, 25, 50, 100]}
+            disabled={loading}
+            showPageInfo={true}
+            pageWindow={3}
+          />
+        </Box>
+      )}
+    </Box>
   )
 }
 

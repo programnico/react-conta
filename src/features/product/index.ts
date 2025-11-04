@@ -15,6 +15,7 @@ export { default as ProductFilters } from './components/ProductFilters'
 
 // Hooks
 export { useProductsRedux } from './hooks/useProductsRedux'
+export { useProductForm } from './hooks/useProductForm'
 
 // Services
 export { productService } from './services/productService'

@@ -8,26 +8,15 @@ export const selectProductState = (state: RootState) => {
   const productState = (state as any).products
 
   // Handle legacy state or corrupted state
-  if (!productState || typeof productState.loading !== 'object' || productState.loading === null) {
+  if (!productState) {
     return {
       products: [],
-      loading: {
-        list: false,
-        create: false,
-        update: false,
-        delete: false,
-        search: false
-      },
+      loading: false,
       error: null,
+      validationErrors: null,
       filters: {},
-      pagination: {
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: 0,
-        perPage: 15,
-        hasNextPage: false,
-        hasPreviousPage: false
-      }
+      selectedProduct: null,
+      meta: null
     }
   }
 
@@ -36,40 +25,17 @@ export const selectProductState = (state: RootState) => {
 
 export const selectProducts = createSelector([selectProductState], state => state.products)
 
-export const selectProductLoading = createSelector([selectProductState], state => {
-  // Handle corrupted loading state
-  if (typeof state.loading !== 'object' || state.loading === null) {
-    return {
-      products: false,
-      creating: false,
-      updating: false,
-      deleting: false,
-      searching: false,
-      any: false
-    }
-  }
-
-  return {
-    products: state.loading.list || false,
-    creating: state.loading.create || false,
-    updating: state.loading.update || false,
-    deleting: state.loading.delete || false,
-    searching: state.loading.search || false,
-    any:
-      state.loading.list ||
-      state.loading.create ||
-      state.loading.update ||
-      state.loading.delete ||
-      state.loading.search ||
-      false
-  }
-})
+export const selectProductLoading = createSelector([selectProductState], state => state.loading)
 
 export const selectProductError = createSelector([selectProductState], state => state.error)
 
+export const selectProductValidationErrors = createSelector([selectProductState], state => state.validationErrors)
+
 export const selectProductFilters = createSelector([selectProductState], state => state.filters)
 
-export const selectProductPagination = createSelector([selectProductState], state => state.pagination)
+export const selectSelectedProduct = createSelector([selectProductState], state => state.selectedProduct)
+
+export const selectProductMeta = createSelector([selectProductState], state => state.meta)
 
 export const selectProductById = createSelector(
   [selectProducts, (state: RootState, productId: number) => productId],
@@ -87,5 +53,3 @@ export const selectProductStats = createSelector([selectProducts], (products: Pr
 
   return stats
 })
-
-export const selectIsAnyProductLoading = createSelector([selectProductLoading], loading => loading.any)

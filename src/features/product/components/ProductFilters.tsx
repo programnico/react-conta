@@ -25,7 +25,7 @@ import type { ProductFilters } from '../types'
 interface ProductFiltersProps {
   filters: ProductFilters
   onFiltersChange: (filters: ProductFilters) => void
-  onSearch?: (query: string) => void
+  onSearch: (query: string) => void
 }
 
 const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFiltersChange, onSearch }) => {
@@ -66,17 +66,17 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFil
   }
 
   const handleSearchSubmit = () => {
-    if (onSearch && searchQuery.trim()) {
+    if (searchQuery.trim()) {
       onSearch(searchQuery.trim())
     }
   }
 
-  const handlePriceRangeChange = (event: Event, newValue: number | number[]) => {
-    const range = newValue as number[]
-    setPriceRange(range)
-    handleFilterChange('min_price', range[0])
-    handleFilterChange('max_price', range[1])
-  }
+  // const handlePriceRangeChange = (event: Event, newValue: number | number[]) => {
+  //   const range = newValue as number[]
+  //   setPriceRange(range)
+  //   handleFilterChange('min_price', range[0])
+  //   handleFilterChange('max_price', range[1])
+  // }
 
   const clearFilters = () => {
     const emptyFilters: ProductFilters = {}
@@ -195,7 +195,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFil
           </Grid>
 
           {/* Price Range */}
-          <Grid item xs={12}>
+          {/* <Grid item xs={12}>
             <Typography variant='body2' gutterBottom>
               Rango de precio: ${priceRange[0]} - ${priceRange[1]}
             </Typography>
@@ -208,7 +208,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFil
               step={10}
               valueLabelFormat={value => `$${value}`}
             />
-          </Grid>
+          </Grid> */}
         </Grid>
       </CardContent>
     </Card>

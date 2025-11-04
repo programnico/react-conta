@@ -16,11 +16,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress,
-  FormControl,
-  Select,
-  MenuItem,
-  Stack
+  CircularProgress
 } from '@mui/material'
 import { Add as AddIcon, Refresh as RefreshIcon, Inventory as InventoryIcon } from '@mui/icons-material'
 
@@ -29,96 +25,73 @@ import { useProductsRedux } from '@/features/product/hooks/useProductsRedux'
 import ProductForm from '@/features/product/components/ProductForm'
 import ProductsTable from '@/features/product/components/ProductsTable'
 import ProductFilters from '@/features/product/components/ProductFilters'
-import SmartPagination from '@/components/pagination/SmartPagination'
-import type { Product, CreateProductRequest } from '@/features/product/types'
+import type { Product, ProductFilters as ProductFiltersType } from '@/features/product/types'
 
 const ProductsPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success' as 'success' | 'error' | 'warning' | 'info'
   })
 
-  // Redux-based state management (no URL dependencies)
+  // Redux state
   const {
     products,
     loading,
     error,
-    pagination,
     filters,
-    stats,
-    loadProducts,
-    createProduct,
-    updateProduct,
+    selectedProduct,
     deleteProduct,
     searchProducts,
-    refreshData,
-    forceResetLoadingStates,
-    // New pagination actions
-    goToPage,
-    changePageSize,
-    setFiltersAndGoToFirstPage
-  } = useProductsRedux({
-    autoLoad: true, // Auto-load with default settings
-    pageSize: 15,
-    initialFilters: {}
-  })
+    clearError,
+    setSelectedProduct,
+    clearSelectedProduct,
+    setFilters
+  } = useProductsRedux()
 
-  const isEditing = Boolean(selectedProduct)
+  // Calculate stats from products
+  // const stats = React.useMemo(() => {
+  //   if (!products.length) return null
+
+  //   return {
+  //     total: products.length,
+  //     active: products.filter(p => p.is_active).length,
+  //     inactive: products.filter(p => !p.is_active).length,
+  //     lowStock: products.filter(p => parseFloat(p.stock_quantity) < 10).length,
+  //     categories: new Set(products.map(p => p.category)).size
+  //   }
+  // }, [products])
 
   // Handlers
   const handleOpenForm = (product?: Product) => {
-    // If any loading states are stuck, reset them before opening the form
-    if (loading.any) {
-      forceResetLoadingStates()
+    if (product) {
+      setSelectedProduct(product)
+      setFormMode('edit')
+    } else {
+      clearSelectedProduct()
+      setFormMode('create')
     }
-
-    setSelectedProduct(product || null)
     setIsFormOpen(true)
   }
 
   const handleCloseForm = () => {
     setIsFormOpen(false)
-    setSelectedProduct(null)
+    clearSelectedProduct()
+    clearError()
   }
 
-  const handleFormSubmit = async (data: CreateProductRequest) => {
-    // Set up a timeout to force reset loading states if operation hangs
-    const timeoutId = setTimeout(() => {
-      forceResetLoadingStates()
-    }, 10000) // 10 second timeout
-
-    try {
-      if (isEditing && selectedProduct) {
-        await updateProduct(selectedProduct.id, data)
-        setSnackbar({
-          open: true,
-          message: 'Producto actualizado exitosamente',
-          severity: 'success'
-        })
-      } else {
-        await createProduct(data)
-        setSnackbar({
-          open: true,
-          message: 'Producto creado exitosamente',
-          severity: 'success'
-        })
-      }
-      handleCloseForm()
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: 'Error al guardar el producto',
-        severity: 'error'
-      })
-    } finally {
-      // Clear the timeout whether success or error
-      clearTimeout(timeoutId)
-    }
+  const handleFormSuccess = () => {
+    setSnackbar({
+      open: true,
+      message: `Producto ${formMode === 'create' ? 'creado' : 'actualizado'} exitosamente`,
+      severity: 'success'
+    })
+    handleCloseForm()
   }
 
   const handleDeleteClick = (product: Product) => {
@@ -129,12 +102,13 @@ const ProductsPage = () => {
   const handleConfirmDelete = async () => {
     if (productToDelete) {
       try {
-        await deleteProduct(productToDelete.id)
+        await deleteProduct(productToDelete.id).unwrap()
         setSnackbar({
           open: true,
           message: 'Producto eliminado exitosamente',
           severity: 'success'
         })
+        // The table will refresh automatically through its useEffect
       } catch (err) {
         setSnackbar({
           open: true,
@@ -147,13 +121,17 @@ const ProductsPage = () => {
     setProductToDelete(null)
   }
 
-  // Pure Redux handlers (no URL manipulation)
-  const handleRefresh = async () => {
-    await refreshData()
+  const handleRefresh = () => {
+    // Force a re-render by clearing and setting filters
+    setFilters({ ...filters })
   }
 
-  const handleFiltersChange = (newFilters: any) => {
-    setFiltersAndGoToFirstPage(newFilters)
+  const handleFiltersChange = (newFilters: ProductFiltersType) => {
+    setFilters(newFilters)
+  }
+
+  const handleSearch = (query: string) => {
+    searchProducts({ query, filters, pageSize: 15 })
   }
 
   const handleCloseSnackbar = () => {
@@ -161,7 +139,7 @@ const ProductsPage = () => {
   }
 
   // Show loading spinner for initial load
-  if (loading.products && products.length === 0) {
+  if (loading && products.length === 0) {
     return (
       <Container maxWidth='xl' sx={{ py: 4, textAlign: 'center' }}>
         <CircularProgress size={60} />
@@ -185,17 +163,17 @@ const ProductsPage = () => {
           </Box>
 
           <Box display='flex' gap={1}>
-            <Button startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading.any}>
+            <Button startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
               Actualizar
             </Button>
-            <Button variant='contained' startIcon={<AddIcon />} onClick={() => handleOpenForm()} disabled={loading.any}>
+            <Button variant='contained' startIcon={<AddIcon />} onClick={() => handleOpenForm()} disabled={loading}>
               Nuevo Producto
             </Button>
           </Box>
         </Box>
 
         {/* Stats Cards */}
-        {stats && (
+        {/* {stats && (
           <Grid container spacing={3} mb={3}>
             <Grid item xs={12} sm={6} md={2.4}>
               <Card>
@@ -258,16 +236,12 @@ const ProductsPage = () => {
               </Card>
             </Grid>
           </Grid>
-        )}
+        )} */}
       </Box>
 
       {/* Filters */}
       <Box mb={3}>
-        <ProductFilters
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          onSearch={query => searchProducts(query, filters)}
-        />
+        <ProductFilters filters={filters} onFiltersChange={handleFiltersChange} onSearch={handleSearch} />
       </Box>
 
       {/* Error Display */}
@@ -277,35 +251,11 @@ const ProductsPage = () => {
         </Alert>
       )}
 
-      {/* Products Table */}
-      <Box mb={3}>
-        <ProductsTable products={products} onEdit={handleOpenForm} onDelete={handleDeleteClick} loading={loading.any} />
-      </Box>
-
-      {/* Smart Pagination - Always visible when there's data */}
-      {pagination.totalItems > 0 && (
-        <SmartPagination
-          currentPage={pagination.currentPage}
-          totalPages={pagination.totalPages}
-          totalItems={pagination.totalItems}
-          perPage={pagination.perPage}
-          onPageChange={goToPage}
-          onPerPageChange={changePageSize}
-          perPageOptions={[5, 10, 15, 25, 50, 100]}
-          disabled={loading.any}
-          showPageInfo={true}
-          pageWindow={3} // Mostrar 3 páginas antes y después de la actual
-        />
-      )}
+      {/* Products Table con paginador integrado */}
+      <ProductsTable onEdit={handleOpenForm} onDelete={handleDeleteClick} filters={filters} />
 
       {/* Product Form Dialog */}
-      <ProductForm
-        open={isFormOpen}
-        product={selectedProduct}
-        onClose={handleCloseForm}
-        onSubmit={handleFormSubmit}
-        loading={loading.creating || loading.updating}
-      />
+      <ProductForm open={isFormOpen} mode={formMode} onClose={handleCloseForm} onSuccess={handleFormSuccess} />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
@@ -315,8 +265,8 @@ const ProductsPage = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteConfirmOpen(false)}>Cancelar</Button>
-          <Button onClick={handleConfirmDelete} color='error' variant='contained' disabled={loading.deleting}>
-            {loading.deleting ? 'Eliminando...' : 'Eliminar'}
+          <Button onClick={handleConfirmDelete} color='error' variant='contained' disabled={loading}>
+            {loading ? 'Eliminando...' : 'Eliminar'}
           </Button>
         </DialogActions>
       </Dialog>
