@@ -1,163 +1,108 @@
+// features/chart-of-accounts/components/ChartOfAccountsForm.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
+  Button,
+  Grid,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Grid,
-  Box,
-  Typography,
   FormControlLabel,
   Switch,
+  Box,
+  Alert,
+  FormHelperText,
   CircularProgress
 } from '@mui/material'
-import { useChartOfAccounts } from '../hooks/useChartOfAccounts'
+import { useChartOfAccountsRedux } from '../hooks/useChartOfAccountsRedux'
+import { useChartOfAccountForm } from '../hooks/useChartOfAccountForm'
 import type { ChartOfAccount, CreateChartOfAccountRequest } from '../types'
 import { ACCOUNT_TYPES } from '../constants/accountTypes'
 
 interface ChartOfAccountsFormProps {
   open: boolean
-  onClose: () => void
-  account?: ChartOfAccount | null
   mode: 'create' | 'edit'
+  onClose: () => void
+  onSuccess: () => void
 }
 
-const ACCOUNT_LEVELS = ['1', '2', '3', '4', '5']
+const ChartOfAccountsForm: React.FC<ChartOfAccountsFormProps> = ({ open, mode, onClose, onSuccess }) => {
+  const { selectedAccount, loading, error, validationErrors, clearValidationErrors, createAccount, updateAccount } =
+    useChartOfAccountsRedux()
 
-const initialFormData: CreateChartOfAccountRequest = {
-  account_code: '',
-  account_name: '',
-  account_type: '',
-  level: '1',
-  is_active: true,
-  description: ''
-}
+  // Account levels
+  const accountLevels = ['1', '2', '3', '4', '5']
 
-export const ChartOfAccountsForm = ({ open, onClose, account, mode }: ChartOfAccountsFormProps) => {
-  const [formData, setFormData] = useState<CreateChartOfAccountRequest>(initialFormData)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-
-  const { createAccount, updateAccount, loading, error, validationErrors, clearError } = useChartOfAccounts()
-
-  // Initialize form data when account changes
-  useEffect(() => {
-    if (mode === 'edit' && account) {
-      setFormData({
-        account_code: account.account_code,
-        account_name: account.account_name,
-        account_type: account.account_type,
-        level: account.level.toString(),
-        is_active: account.is_active,
-        description: account.description || '',
-        id: account.id
-      })
-    } else {
-      setFormData(initialFormData)
-    }
-    setErrors({})
-    clearError()
-  }, [account, mode, open, clearError])
-
-  const handleInputChange =
-    (field: keyof CreateChartOfAccountRequest) =>
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const value = event.target.value
-      setFormData(prev => ({ ...prev, [field]: value }))
-
-      // Clear error for this field
-      if (errors[field]) {
-        setErrors(prev => ({ ...prev, [field]: '' }))
+  // Datos iniciales para el formulario
+  const initialData = useMemo(() => {
+    if (mode === 'edit' && selectedAccount) {
+      return {
+        account_code: selectedAccount.account_code,
+        account_name: selectedAccount.account_name,
+        account_type: selectedAccount.account_type,
+        level: selectedAccount.level.toString(),
+        is_active: selectedAccount.is_active,
+        description: selectedAccount.description || ''
       }
     }
+    return {}
+  }, [mode, selectedAccount])
 
-  const handleSelectChange = (field: keyof CreateChartOfAccountRequest) => (event: any) => {
-    const value = event.target.value
-    setFormData(prev => ({ ...prev, [field]: value }))
-
-    // Clear error for this field
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }))
-    }
-  }
-
-  const handleSwitchChange =
-    (field: keyof CreateChartOfAccountRequest) => (event: React.ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.checked
-      setFormData(prev => ({ ...prev, [field]: value }))
-    }
-
-  // Función para obtener el error de un campo (local o del backend)
-  const getFieldError = (field: keyof CreateChartOfAccountRequest): string => {
-    // Priorizar errores locales de validación del frontend
-    if (errors[field]) {
-      return errors[field]
-    }
-
-    // Si no hay errores locales, mostrar errores del backend
-    if (validationErrors && validationErrors[field]) {
-      return validationErrors[field][0] // Mostrar el primer error del array
-    }
-
-    return ''
-  }
-
-  // Función para verificar si un campo tiene error
-  const hasFieldError = (field: keyof CreateChartOfAccountRequest): boolean => {
-    return !!(errors[field] || (validationErrors && validationErrors[field]))
-  }
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.account_code.trim()) {
-      newErrors.account_code = 'El código de cuenta es requerido'
-    }
-
-    if (!formData.account_name.trim()) {
-      newErrors.account_name = 'El nombre de cuenta es requerido'
-    }
-
-    if (!formData.account_type) {
-      newErrors.account_type = 'El tipo de cuenta es requerido'
-    }
-
-    if (!formData.level) {
-      newErrors.level = 'El nivel es requerido'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async () => {
-    if (!validateForm()) return
-
+  // Función para manejar el envío del formulario
+  const handleFormSubmit = async (data: CreateChartOfAccountRequest) => {
     try {
       if (mode === 'create') {
-        await createAccount(formData)
-      } else if (mode === 'edit' && account) {
-        await updateAccount(account.id, formData)
+        await createAccount(data).unwrap()
+      } else if (mode === 'edit' && selectedAccount) {
+        await updateAccount({ id: selectedAccount.id, data }).unwrap()
       }
+      onSuccess()
       onClose()
     } catch (error) {
-      // Error handled by global error handling
+      // Los errores se manejan automáticamente en Redux
+      console.error('Error submitting form:', error)
     }
   }
 
+  // Hook del formulario
+  const { formData, errors, isSubmitting, handleInputChange, handleSubmit, resetForm } = useChartOfAccountForm({
+    initialData,
+    onSubmit: handleFormSubmit,
+    apiValidationErrors: validationErrors
+  })
+
+  // Limpiar errores cuando se abre el modal
+  useEffect(() => {
+    if (open) {
+      clearValidationErrors()
+    }
+  }, [open, clearValidationErrors])
+
   const handleClose = () => {
-    setFormData(initialFormData)
-    setErrors({})
-    clearError()
+    resetForm()
     onClose()
   }
+
+  const handleInputFieldChange =
+    (field: keyof CreateChartOfAccountRequest) => (event: React.ChangeEvent<HTMLInputElement>) => {
+      handleInputChange(field, event.target.value)
+    }
+
+  const handleSelectFieldChange = (field: keyof CreateChartOfAccountRequest) => (event: any) => {
+    handleInputChange(field, event.target.value)
+  }
+
+  const handleSwitchFieldChange =
+    (field: keyof CreateChartOfAccountRequest) => (event: React.ChangeEvent<HTMLInputElement>) => {
+      handleInputChange(field, event.target.checked)
+    }
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth='md' fullWidth>
@@ -173,9 +118,9 @@ export const ChartOfAccountsForm = ({ open, onClose, account, mode }: ChartOfAcc
                 label='Código de Cuenta'
                 placeholder='Ej: 1001'
                 value={formData.account_code}
-                onChange={handleInputChange('account_code')}
-                error={hasFieldError('account_code')}
-                helperText={getFieldError('account_code')}
+                onChange={handleInputFieldChange('account_code')}
+                error={!!errors.account_code}
+                helperText={errors.account_code}
                 required
               />
             </Grid>
@@ -187,20 +132,20 @@ export const ChartOfAccountsForm = ({ open, onClose, account, mode }: ChartOfAcc
                 label='Nombre de Cuenta'
                 placeholder='Ej: Caja General'
                 value={formData.account_name}
-                onChange={handleInputChange('account_name')}
-                error={hasFieldError('account_name')}
-                helperText={getFieldError('account_name')}
+                onChange={handleInputFieldChange('account_name')}
+                error={!!errors.account_name}
+                helperText={errors.account_name}
                 required
               />
             </Grid>
 
             {/* Account Type */}
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={hasFieldError('account_type')}>
+              <FormControl fullWidth error={!!errors.account_type}>
                 <InputLabel required>Tipo de Cuenta</InputLabel>
                 <Select
                   value={formData.account_type}
-                  onChange={handleSelectChange('account_type')}
+                  onChange={handleSelectFieldChange('account_type')}
                   label='Tipo de Cuenta'
                 >
                   {ACCOUNT_TYPES.map(type => (
@@ -209,30 +154,22 @@ export const ChartOfAccountsForm = ({ open, onClose, account, mode }: ChartOfAcc
                     </MenuItem>
                   ))}
                 </Select>
-                {hasFieldError('account_type') && (
-                  <Typography variant='caption' color='error' sx={{ mt: 0.5, ml: 1.5 }}>
-                    {getFieldError('account_type')}
-                  </Typography>
-                )}
+                {errors.account_type && <FormHelperText>{errors.account_type}</FormHelperText>}
               </FormControl>
             </Grid>
 
             {/* Level */}
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth error={hasFieldError('level')}>
+              <FormControl fullWidth error={!!errors.level}>
                 <InputLabel required>Nivel</InputLabel>
-                <Select value={formData.level} onChange={handleSelectChange('level')} label='Nivel'>
-                  {ACCOUNT_LEVELS.map(level => (
+                <Select value={formData.level} onChange={handleSelectFieldChange('level')} label='Nivel'>
+                  {accountLevels.map(level => (
                     <MenuItem key={level} value={level}>
                       Nivel {level}
                     </MenuItem>
                   ))}
                 </Select>
-                {hasFieldError('level') && (
-                  <Typography variant='caption' color='error' sx={{ mt: 0.5, ml: 1.5 }}>
-                    {getFieldError('level')}
-                  </Typography>
-                )}
+                {errors.level && <FormHelperText>{errors.level}</FormHelperText>}
               </FormControl>
             </Grid>
 
@@ -243,7 +180,9 @@ export const ChartOfAccountsForm = ({ open, onClose, account, mode }: ChartOfAcc
                 label='Descripción'
                 placeholder='Descripción opcional de la cuenta'
                 value={formData.description}
-                onChange={handleInputChange('description')}
+                onChange={handleInputFieldChange('description')}
+                error={!!errors.description}
+                helperText={errors.description}
                 multiline
                 rows={3}
               />
@@ -252,7 +191,7 @@ export const ChartOfAccountsForm = ({ open, onClose, account, mode }: ChartOfAcc
             {/* Active Status */}
             <Grid item xs={12}>
               <FormControlLabel
-                control={<Switch checked={formData.is_active} onChange={handleSwitchChange('is_active')} />}
+                control={<Switch checked={formData.is_active} onChange={handleSwitchFieldChange('is_active')} />}
                 label='Cuenta Activa'
               />
             </Grid>
@@ -261,46 +200,21 @@ export const ChartOfAccountsForm = ({ open, onClose, account, mode }: ChartOfAcc
           {/* Error Display */}
           {error && (
             <Box mt={2}>
-              <Typography color='error' variant='body2'>
-                {error}
-              </Typography>
+              <Alert severity='error'>{error}</Alert>
             </Box>
           )}
-
-          {/* Validation Errors Display - Errores generales no asociados a campos específicos */}
-          {validationErrors &&
-            Object.keys(validationErrors).some(
-              key => !['account_code', 'account_name', 'account_type', 'level'].includes(key)
-            ) && (
-              <Box mt={2}>
-                <Typography color='error' variant='body2' gutterBottom>
-                  Errores de validación:
-                </Typography>
-                {Object.entries(validationErrors).map(([field, fieldErrors]) => {
-                  // Solo mostrar errores que no sean de campos específicos ya manejados
-                  if (['account_code', 'account_name', 'account_type', 'level'].includes(field)) {
-                    return null
-                  }
-                  return (
-                    <Typography key={field} color='error' variant='caption' display='block'>
-                      • {fieldErrors.join(', ')}
-                    </Typography>
-                  )
-                })}
-              </Box>
-            )}
         </Box>
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={handleClose} disabled={loading.creating || loading.updating}>
+        <Button onClick={handleClose} disabled={loading || isSubmitting}>
           Cancelar
         </Button>
         <Button
           onClick={handleSubmit}
           variant='contained'
-          disabled={loading.creating || loading.updating}
-          startIcon={loading.creating || loading.updating ? <CircularProgress size={20} /> : null}
+          disabled={loading || isSubmitting}
+          startIcon={loading || isSubmitting ? <CircularProgress size={20} /> : null}
         >
           {mode === 'create' ? 'Crear Cuenta' : 'Actualizar Cuenta'}
         </Button>
@@ -308,3 +222,6 @@ export const ChartOfAccountsForm = ({ open, onClose, account, mode }: ChartOfAcc
     </Dialog>
   )
 }
+
+export default ChartOfAccountsForm
+export { ChartOfAccountsForm }

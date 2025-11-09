@@ -1,28 +1,33 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
+
 import { chartOfAccountsService } from '@/features/chart-of-accounts/services/chartOfAccountsService'
 import type {
   ChartOfAccount,
   ChartOfAccountsApiResponse,
+  ChartOfAccountsApiClientResponse,
   CreateChartOfAccountRequest,
   ChartOfAccountFilters
 } from '@/features/chart-of-accounts/types'
 
 // Async thunks
-export const fetchChartOfAccounts = createAsyncThunk(
-  'chartOfAccounts/fetchChartOfAccounts',
-  async (params: { page?: number; filters?: ChartOfAccountFilters; pageSize?: number }) => {
+export const fetchChartOfAccounts = createAsyncThunk<
+  ChartOfAccountsApiResponse | ChartOfAccountsApiClientResponse,
+  { page?: number; filters?: ChartOfAccountFilters; pageSize?: number }
+>('chartOfAccounts/fetchChartOfAccounts', async (params, { rejectWithValue }) => {
+  try {
     const { page = 1, filters = {}, pageSize = 15 } = params
-
     const response = await chartOfAccountsService.getAll({
-      ...filters,
       page,
-      per_page: pageSize
+      per_page: pageSize,
+      ...filters
     })
-
     return response
+  } catch (error: any) {
+    console.error('Error fetching chart of accounts:', error)
+    return rejectWithValue(error.message || 'Error al obtener cuentas')
   }
-)
+})
 
 export const createChartOfAccount = createAsyncThunk(
   'chartOfAccounts/createChartOfAccount',
@@ -31,21 +36,17 @@ export const createChartOfAccount = createAsyncThunk(
       const account = await chartOfAccountsService.create(data)
       return account
     } catch (error: any) {
-      // Preservar los errores de validación del backend
+      // Si es un ApiError con errores de validación, los incluimos
       if (error.errors) {
         return rejectWithValue({
-          message: error.message,
-          errors: error.errors
+          message: error.message || 'Error al crear cuenta',
+          validationErrors: error.errors
         })
       }
-      // Si es una instancia de ApiError, preservar todo
-      if (error.status !== undefined) {
-        return rejectWithValue({
-          message: error.message,
-          errors: error.errors || null
-        })
-      }
-      throw error
+      return rejectWithValue({
+        message: error.message || 'Error al crear cuenta',
+        validationErrors: null
+      })
     }
   }
 )
@@ -57,82 +58,100 @@ export const updateChartOfAccount = createAsyncThunk(
       const account = await chartOfAccountsService.update(id, data)
       return account
     } catch (error: any) {
-      // Preservar los errores de validación del backend
+      // Si es un ApiError con errores de validación, los incluimos
       if (error.errors) {
         return rejectWithValue({
-          message: error.message,
-          errors: error.errors
+          message: error.message || 'Error al actualizar cuenta',
+          validationErrors: error.errors
         })
       }
-      // Si es una instancia de ApiError, preservar todo
-      if (error.status !== undefined) {
-        return rejectWithValue({
-          message: error.message,
-          errors: error.errors || null
-        })
-      }
-      throw error
+      return rejectWithValue({
+        message: error.message || 'Error al actualizar cuenta',
+        validationErrors: null
+      })
     }
   }
 )
 
-export const deleteChartOfAccount = createAsyncThunk('chartOfAccounts/deleteChartOfAccount', async (id: number) => {
-  await chartOfAccountsService.delete(id)
-  return id
-})
-
-export const searchChartOfAccounts = createAsyncThunk(
-  'chartOfAccounts/searchChartOfAccounts',
-  async (params: { query: string; filters?: ChartOfAccountFilters }) => {
-    const { query, filters = {} } = params
-    const response = await chartOfAccountsService.search(query, filters)
-    return response
+export const deleteChartOfAccount = createAsyncThunk(
+  'chartOfAccounts/deleteChartOfAccount',
+  async (id: number, { rejectWithValue }) => {
+    try {
+      await chartOfAccountsService.delete(id)
+      return id
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Error al eliminar cuenta')
+    }
   }
 )
+
+export const searchChartOfAccounts = createAsyncThunk<
+  ChartOfAccountsApiResponse | ChartOfAccountsApiClientResponse,
+  { query: string; filters?: ChartOfAccountFilters; pageSize?: number }
+>('chartOfAccounts/searchChartOfAccounts', async (params, { rejectWithValue }) => {
+  try {
+    const { query, filters = {}, pageSize = 15 } = params
+    const searchFilters = {
+      ...filters,
+      per_page: pageSize
+    }
+    const response = await chartOfAccountsService.search(query, searchFilters)
+    return response
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Error al buscar cuentas')
+  }
+})
+
+// Helper function para extraer datos de paginación de la respuesta
+const extractPaginationData = (payload: ChartOfAccountsApiResponse | ChartOfAccountsApiClientResponse) => {
+  // Caso 1: Respuesta completa del API { status, message, data: {...} }
+  if ('status' in payload && 'data' in payload && payload.data && typeof payload.data === 'object') {
+    return payload.data
+  }
+  // Caso 2: ApiClient ya extrajo 'data' - solo estructura de paginación { current_page, data: [], ... }
+  else if ('current_page' in payload && 'data' in payload) {
+    return payload
+  }
+  return null
+}
 
 // Initial state
 interface ChartOfAccountsState {
   accounts: ChartOfAccount[]
-  loading: {
-    list: boolean
-    create: boolean
-    update: boolean
-    delete: boolean
-    search: boolean
-  }
+  loading: boolean
   error: string | null
-  validationErrors: Record<string, string[]> | null // Errores de validación del backend
+  validationErrors: Record<string, string[]> | null
   filters: ChartOfAccountFilters
+  selectedAccount: ChartOfAccount | null
+  needsReload: boolean
+  // Estado de paginación local (separado de meta del servidor)
   pagination: {
     currentPage: number
-    totalPages: number
-    totalItems: number
-    perPage: number
-    hasNextPage: boolean
-    hasPreviousPage: boolean
+    rowsPerPage: number
   }
+  meta: {
+    current_page: number
+    from: number
+    last_page: number
+    per_page: number
+    to: number
+    total: number
+  } | null
 }
 
 const initialState: ChartOfAccountsState = {
   accounts: [],
-  loading: {
-    list: false,
-    create: false,
-    update: false,
-    delete: false,
-    search: false
-  },
+  loading: false,
   error: null,
   validationErrors: null,
   filters: {},
+  selectedAccount: null,
+  needsReload: false,
   pagination: {
     currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-    perPage: 15,
-    hasNextPage: false,
-    hasPreviousPage: false
-  }
+    rowsPerPage: 15
+  },
+  meta: null
 }
 
 // Slice
@@ -140,153 +159,180 @@ const chartOfAccountsSlice = createSlice({
   name: 'chartOfAccounts',
   initialState,
   reducers: {
+    clearError: state => {
+      state.error = null
+    },
+    clearValidationErrors: state => {
+      state.validationErrors = null
+    },
+    setSelectedAccount: (state, action: PayloadAction<ChartOfAccount | null>) => {
+      state.selectedAccount = action.payload
+    },
+    clearSelectedAccount: state => {
+      state.selectedAccount = null
+    },
     setFilters: (state, action: PayloadAction<ChartOfAccountFilters>) => {
       state.filters = action.payload
     },
     clearFilters: state => {
       state.filters = {}
     },
-    clearError: state => {
-      state.error = null
-      state.validationErrors = null
+    setNeedsReload: (state, action: PayloadAction<boolean>) => {
+      state.needsReload = action.payload
     },
-    clearValidationErrors: state => {
-      state.validationErrors = null
+    setCurrentPage: (state, action: PayloadAction<number>) => {
+      state.pagination.currentPage = action.payload
     },
-    resetChartOfAccounts: state => {
-      state.accounts = []
-      state.pagination = initialState.pagination
+    setRowsPerPage: (state, action: PayloadAction<number>) => {
+      state.pagination.rowsPerPage = action.payload
+      // Resetear a página 1 cuando cambie el tamaño de página
+      state.pagination.currentPage = 1
     },
-    resetLoadingStates: state => {
-      state.loading = {
-        list: false,
-        create: false,
-        update: false,
-        delete: false,
-        search: false
-      }
+    resetPagination: state => {
+      state.pagination.currentPage = 1
     }
   },
   extraReducers: builder => {
-    // Fetch accounts
     builder
+      // Fetch chart of accounts
       .addCase(fetchChartOfAccounts.pending, state => {
-        state.loading.list = true
+        state.loading = true
         state.error = null
       })
       .addCase(fetchChartOfAccounts.fulfilled, (state, action) => {
-        state.loading.list = false
-        const newAccounts = action.payload.data
-        state.accounts = newAccounts
-        state.pagination = {
-          currentPage: action.payload.current_page,
-          totalPages: action.payload.last_page,
-          totalItems: action.payload.total,
-          perPage: action.payload.per_page,
-          hasNextPage: action.payload.next_page_url !== null,
-          hasPreviousPage: action.payload.prev_page_url !== null
+        state.loading = false
+        state.needsReload = false // Limpiar flag de recarga
+
+        const paginationData = extractPaginationData(action.payload)
+
+        if (paginationData && 'data' in paginationData && Array.isArray(paginationData.data)) {
+          state.accounts = paginationData.data
+          state.meta = {
+            current_page: paginationData.current_page || 1,
+            from: paginationData.from || 0,
+            last_page: paginationData.last_page || 1,
+            per_page: paginationData.per_page || 15,
+            to: paginationData.to || 0,
+            total: paginationData.total || 0
+          }
+        } else {
+          // Fallback
+          console.error('Unexpected chart of accounts response structure:', action.payload)
+          state.accounts = []
+          state.meta = null
         }
       })
       .addCase(fetchChartOfAccounts.rejected, (state, action) => {
-        state.loading.list = false
-        state.error = action.error.message || 'Error loading chart of accounts'
+        state.loading = false
+        state.error = action.payload as string
       })
-
-    // Create account
-    builder
+      // Create chart of account
       .addCase(createChartOfAccount.pending, state => {
-        state.loading.create = true
+        state.loading = true
         state.error = null
         state.validationErrors = null
       })
       .addCase(createChartOfAccount.fulfilled, (state, action) => {
-        state.loading.create = false
-        state.accounts.unshift(action.payload)
-        state.pagination.totalItems += 1
+        state.loading = false
+        state.error = null
+        state.validationErrors = null
+        // Marcar que necesita recarga
+        state.needsReload = true
       })
       .addCase(createChartOfAccount.rejected, (state, action) => {
-        state.loading.create = false
-
-        // Si el error viene de rejectWithValue, usar esos datos
-        if (action.payload) {
-          const payload = action.payload as { message: string; errors?: Record<string, string[]> }
+        state.loading = false
+        const payload = action.payload as any
+        if (payload && typeof payload === 'object') {
           state.error = payload.message
-          state.validationErrors = payload.errors || null
+          state.validationErrors = payload.validationErrors
         } else {
-          // Error genérico
-          state.error = action.error.message || 'Error creating account'
+          state.error = payload as string
           state.validationErrors = null
         }
-      }) // Update account
-    builder
+      })
+      // Update chart of account
       .addCase(updateChartOfAccount.pending, state => {
-        state.loading.update = true
+        state.loading = true
         state.error = null
         state.validationErrors = null
       })
       .addCase(updateChartOfAccount.fulfilled, (state, action) => {
-        state.loading.update = false
-        const index = state.accounts.findIndex(acc => acc.id === action.payload.id)
-        if (index !== -1) {
-          state.accounts[index] = action.payload
-        }
+        state.loading = false
+        state.error = null
+        state.validationErrors = null
+        // Marcar que necesita recarga para mantener consistencia
+        state.needsReload = true
       })
       .addCase(updateChartOfAccount.rejected, (state, action) => {
-        state.loading.update = false
-
-        // Si el error viene de rejectWithValue, usar esos datos
-        if (action.payload) {
-          const payload = action.payload as { message: string; errors?: Record<string, string[]> }
+        state.loading = false
+        const payload = action.payload as any
+        if (payload && typeof payload === 'object') {
           state.error = payload.message
-          state.validationErrors = payload.errors || null
+          state.validationErrors = payload.validationErrors
         } else {
-          // Error genérico
-          state.error = action.error.message || 'Error updating account'
+          state.error = payload as string
           state.validationErrors = null
         }
       })
-
-    // Delete account
-    builder
+      // Delete chart of account
       .addCase(deleteChartOfAccount.pending, state => {
-        state.loading.delete = true
+        state.loading = true
         state.error = null
       })
       .addCase(deleteChartOfAccount.fulfilled, (state, action) => {
-        state.loading.delete = false
-        state.accounts = state.accounts.filter(acc => acc.id !== action.payload)
-        state.pagination.totalItems -= 1
+        state.loading = false
+        // Marcar que necesita recarga
+        state.needsReload = true
       })
       .addCase(deleteChartOfAccount.rejected, (state, action) => {
-        state.loading.delete = false
-        state.error = action.error.message || 'Error deleting account'
+        state.loading = false
+        state.error = action.payload as string
       })
-
-    // Search accounts
-    builder
+      // Search chart of accounts
       .addCase(searchChartOfAccounts.pending, state => {
-        state.loading.search = true
+        state.loading = true
         state.error = null
       })
       .addCase(searchChartOfAccounts.fulfilled, (state, action) => {
-        state.loading.search = false
-        state.accounts = action.payload.data
-        state.pagination = {
-          currentPage: action.payload.current_page,
-          totalPages: action.payload.last_page,
-          totalItems: action.payload.total,
-          perPage: action.payload.per_page,
-          hasNextPage: action.payload.next_page_url !== null,
-          hasPreviousPage: action.payload.prev_page_url !== null
+        state.loading = false
+
+        const paginationData = extractPaginationData(action.payload)
+
+        if (paginationData && 'data' in paginationData && Array.isArray(paginationData.data)) {
+          state.accounts = paginationData.data
+          state.meta = {
+            current_page: paginationData.current_page || 1,
+            from: paginationData.from || 0,
+            last_page: paginationData.last_page || 1,
+            per_page: paginationData.per_page || 15,
+            to: paginationData.to || 0,
+            total: paginationData.total || 0
+          }
+        } else {
+          // Fallback
+          console.error('Unexpected search chart of accounts response structure:', action.payload)
+          state.accounts = []
+          state.meta = null
         }
       })
       .addCase(searchChartOfAccounts.rejected, (state, action) => {
-        state.loading.search = false
-        state.error = action.error.message || 'Error searching accounts'
+        state.loading = false
+        state.error = action.payload as string
       })
   }
 })
 
-export const { setFilters, clearFilters, clearError, clearValidationErrors, resetChartOfAccounts, resetLoadingStates } =
-  chartOfAccountsSlice.actions
+export const {
+  clearError,
+  clearValidationErrors,
+  setSelectedAccount,
+  clearSelectedAccount,
+  setFilters,
+  clearFilters,
+  setNeedsReload,
+  setCurrentPage,
+  setRowsPerPage,
+  resetPagination
+} = chartOfAccountsSlice.actions
+
 export default chartOfAccountsSlice.reducer

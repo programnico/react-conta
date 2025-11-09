@@ -69,8 +69,8 @@ export const ChartOfAccountsFilters = ({
     const emptyFilters = {}
     setLocalFilters(emptyFilters)
     setSearchTerm('')
+    // Only call onClearFilters, not onFiltersChange to avoid conflicts
     onClearFilters?.()
-    onFiltersChange?.(emptyFilters)
   }
 
   const activeFiltersCount = Object.values(localFilters).filter(

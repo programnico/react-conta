@@ -25,7 +25,7 @@ import {
   ChartOfAccountsTable,
   ChartOfAccountsFilters,
   ChartOfAccountsForm,
-  useChartOfAccounts
+  useChartOfAccountsRedux
 } from '@/features/chart-of-accounts'
 import type { ChartOfAccount, CreateChartOfAccountRequest } from '@/features/chart-of-accounts'
 
@@ -45,33 +45,44 @@ const ChartOfAccountsPage = () => {
     accounts,
     loading,
     error,
-    stats,
-    pagination,
+    validationErrors,
     filters,
-    rootAccounts,
+    selectedAccount: reduxSelectedAccount,
+    needsReload,
+    loadAccounts,
     createAccount,
     updateAccount,
     deleteAccount,
-    refreshData,
+    searchAccounts,
     clearError,
-    loadAccounts,
+    clearValidationErrors,
+    setSelectedAccount: setReduxSelectedAccount,
+    clearSelectedAccount,
     setFilters,
-    clearFilters
-  } = useChartOfAccounts({
-    autoLoad: false,
-    pageSize: 15
-  })
+    clearFilters,
+    resetPagination,
+    setNeedsReload
+  } = useChartOfAccountsRedux()
 
   const isEditing = formMode === 'edit'
 
   // Load data on component mount
   useEffect(() => {
-    loadAccounts(1, {})
-  }, []) // Sin dependencias para evitar bucles
+    loadAccounts()
+  }, [loadAccounts])
+
+  // Reload data when needsReload flag is set
+  useEffect(() => {
+    if (needsReload) {
+      loadAccounts()
+      setNeedsReload(false)
+    }
+  }, [needsReload, loadAccounts, setNeedsReload])
 
   // Handlers
   const handleOpenForm = (account?: ChartOfAccount) => {
     setSelectedAccount(account || null)
+    setReduxSelectedAccount(account || null)
     setFormMode(account ? 'edit' : 'create')
     setIsFormOpen(true)
   }
@@ -79,7 +90,9 @@ const ChartOfAccountsPage = () => {
   const handleCloseForm = () => {
     setIsFormOpen(false)
     setSelectedAccount(null)
+    clearSelectedAccount()
     clearError()
+    clearValidationErrors()
   }
 
   const handleEdit = (account: ChartOfAccount) => {
@@ -94,7 +107,7 @@ const ChartOfAccountsPage = () => {
   const handleConfirmDelete = async () => {
     if (accountToDelete) {
       try {
-        await deleteAccount(accountToDelete.id)
+        await deleteAccount(accountToDelete.id).unwrap()
         setSnackbar({
           open: true,
           message: 'Cuenta eliminada exitosamente',
@@ -113,26 +126,18 @@ const ChartOfAccountsPage = () => {
   }
 
   const handleRefresh = async () => {
-    await refreshData()
-  }
-
-  const handlePageChange = async (page: number) => {
-    await loadAccounts(page, filters)
-  }
-
-  const handleRowsPerPageChange = async (rowsPerPage: number) => {
-    // Reset to page 1 when changing page size
-    await loadAccounts(1, filters, rowsPerPage)
+    await loadAccounts()
   }
 
   const handleFiltersChange = async (newFilters: any) => {
     setFilters(newFilters)
-    await loadAccounts(1, newFilters)
   }
 
   const handleClearFilters = async () => {
     clearFilters()
-    await loadAccounts(1, {})
+    resetPagination()
+    // Force reload data with empty filters
+    await loadAccounts({})
   }
 
   const handleCloseSnackbar = () => {
@@ -140,7 +145,7 @@ const ChartOfAccountsPage = () => {
   }
 
   // Show loading spinner for initial load
-  if (loading.accounts && accounts.length === 0) {
+  if (loading && accounts.length === 0) {
     return (
       <Container maxWidth='xl' sx={{ py: 4, textAlign: 'center' }}>
         <CircularProgress size={60} />
@@ -150,6 +155,29 @@ const ChartOfAccountsPage = () => {
       </Container>
     )
   }
+
+  // Calculate stats from accounts for display
+  const stats = {
+    total: accounts.length,
+    active: accounts.filter(acc => acc.is_active).length,
+    inactive: accounts.filter(acc => !acc.is_active).length,
+    byType: accounts.reduce(
+      (acc, account) => {
+        acc[account.account_type] = (acc[account.account_type] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    ),
+    byLevel: accounts.reduce(
+      (acc, account) => {
+        acc[account.level] = (acc[account.level] || 0) + 1
+        return acc
+      },
+      {} as Record<number, number>
+    )
+  }
+
+  const rootAccounts = accounts.filter(acc => acc.parent_account_id === null)
 
   return (
     <AuthGuard>
@@ -165,15 +193,10 @@ const ChartOfAccountsPage = () => {
             </Box>
 
             <Box display='flex' gap={1}>
-              <Button startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading.any}>
+              <Button startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
                 Actualizar
               </Button>
-              <Button
-                variant='contained'
-                startIcon={<AddIcon />}
-                onClick={() => handleOpenForm()}
-                disabled={loading.any}
-              >
+              <Button variant='contained' startIcon={<AddIcon />} onClick={() => handleOpenForm()} disabled={loading}>
                 Nueva Cuenta
               </Button>
             </Box>
@@ -265,21 +288,22 @@ const ChartOfAccountsPage = () => {
 
         {/* Chart of Accounts Table */}
         <Box mb={3}>
-          <ChartOfAccountsTable
-            accounts={accounts}
-            loading={loading}
-            pagination={pagination}
-            filters={filters}
-            onEdit={handleEdit}
-            onDelete={handleDeleteClick}
-            onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            enableActions={true}
-          />
+          <ChartOfAccountsTable filters={filters} onEdit={handleEdit} onDelete={handleDeleteClick} />
         </Box>
 
         {/* Chart of Accounts Form Dialog */}
-        <ChartOfAccountsForm open={isFormOpen} onClose={handleCloseForm} account={selectedAccount} mode={formMode} />
+        <ChartOfAccountsForm
+          open={isFormOpen}
+          onClose={handleCloseForm}
+          mode={formMode}
+          onSuccess={() => {
+            setSnackbar({
+              open: true,
+              message: formMode === 'create' ? 'Cuenta creada exitosamente' : 'Cuenta actualizada exitosamente',
+              severity: 'success'
+            })
+          }}
+        />
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
@@ -298,11 +322,9 @@ const ChartOfAccountsPage = () => {
               onClick={handleConfirmDelete}
               color='error'
               variant='contained'
-              disabled={
-                loading.deleting || (accountToDelete?.child_accounts && accountToDelete.child_accounts.length > 0)
-              }
+              disabled={loading || (accountToDelete?.child_accounts && accountToDelete.child_accounts.length > 0)}
             >
-              {loading.deleting ? 'Eliminando...' : 'Eliminar'}
+              {loading ? 'Eliminando...' : 'Eliminar'}
             </Button>
           </DialogActions>
         </Dialog>
