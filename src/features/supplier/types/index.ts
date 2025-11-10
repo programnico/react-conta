@@ -39,36 +39,48 @@ export interface CreateSupplierRequest {
 
 export interface SupplierFilters {
   name?: string
+  business_name?: string
   type?: SupplierType
   classification?: SupplierClassification
   is_active?: boolean
   search?: string
+  email?: string
 }
 
-export interface SuppliersApiResponse {
-  status: string
-  message: string
-  data: {
-    current_page: number
-    data: Supplier[]
-    first_page_url: string
-    from: number
-    last_page: number
-    last_page_url: string
-    links: Array<{
-      url: string | null
-      label: string
-      page: number | null
-      active: boolean
-    }>
-    next_page_url: string | null
-    path: string
-    per_page: number
-    prev_page_url: string | null
-    to: number
-    total: number
-  }
+// Estructura estándar para enlaces de paginación
+export interface PaginationLinks {
+  url: string | null
+  label: string
+  page: number | null
+  active: boolean
 }
+
+// Estructura estándar de respuesta paginada (igual que products y chart-of-accounts)
+export interface PaginatedResponse<T> {
+  current_page: number
+  data: T[]
+  first_page_url: string
+  from: number
+  last_page: number
+  last_page_url: string
+  links: PaginationLinks[]
+  next_page_url: string | null
+  path: string
+  per_page: number
+  prev_page_url: string | null
+  to: number
+  total: number
+}
+
+// Respuesta API completa (antes de que apiClient extraiga 'data')
+export interface SuppliersApiResponse {
+  status: 'success' | 'error'
+  message: string
+  data: PaginatedResponse<Supplier>
+}
+
+// Respuesta después de que apiClient extrae 'data' automáticamente
+export type SuppliersApiClientResponse = PaginatedResponse<Supplier>
 
 export interface SupplierStats {
   total: number
@@ -83,4 +95,16 @@ export interface SupplierStats {
     large: number
     other: number
   }
+}
+
+export interface GetSuppliersParams {
+  page?: number
+  per_page?: number
+  name?: string
+  business_name?: string
+  type?: SupplierType
+  classification?: SupplierClassification
+  is_active?: boolean
+  search?: string
+  email?: string
 }

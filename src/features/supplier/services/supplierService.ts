@@ -1,16 +1,12 @@
 // features/supplier/services/supplierService.ts
 import { apiClient, API_CONFIG } from '@/shared/services/apiClient'
-import type { Supplier, SuppliersApiResponse, CreateSupplierRequest } from '../types'
-
-interface GetSuppliersParams {
-  page?: number
-  per_page?: number
-  name?: string
-  type?: string
-  classification?: string
-  is_active?: boolean
-  search?: string
-}
+import type {
+  Supplier,
+  SuppliersApiResponse,
+  SuppliersApiClientResponse,
+  CreateSupplierRequest,
+  GetSuppliersParams
+} from '../types'
 
 class SupplierService {
   // Using centralized API_CONFIG endpoints
@@ -18,7 +14,7 @@ class SupplierService {
   /**
    * Get all suppliers with pagination and filters
    */
-  async getAll(params: GetSuppliersParams = {}): Promise<SuppliersApiResponse> {
+  async getAll(params: GetSuppliersParams = {}): Promise<SuppliersApiClientResponse> {
     try {
       const queryParams = new URLSearchParams()
 
@@ -28,19 +24,22 @@ class SupplierService {
 
       // Add filter params
       if (params.name) queryParams.append('name', params.name)
+      if (params.business_name) queryParams.append('business_name', params.business_name)
       if (params.type) queryParams.append('type', params.type)
       if (params.classification) queryParams.append('classification', params.classification)
       if (params.is_active !== undefined) queryParams.append('is_active', params.is_active ? '1' : '0')
       if (params.search) queryParams.append('search', params.search)
+      if (params.email) queryParams.append('email', params.email)
 
       const endpoint = queryParams.toString()
         ? `${API_CONFIG.ENDPOINTS.SUPPLIERS.LIST}?${queryParams.toString()}`
         : API_CONFIG.ENDPOINTS.SUPPLIERS.LIST
 
-      const response = await apiClient.request<SuppliersApiResponse>({
+      const response = await apiClient.request<any>({
         endpoint,
         method: 'GET'
       })
+
       return response
     } catch (error) {
       throw error
@@ -82,6 +81,7 @@ class SupplierService {
   async update(id: number, data: CreateSupplierRequest): Promise<Supplier> {
     try {
       const payload = {
+        id: id,
         name: data.name || '',
         business_name: data.business_name,
         type: data.type,
@@ -95,8 +95,8 @@ class SupplierService {
       }
 
       const response = await apiClient.request<Supplier>({
-        endpoint: `${API_CONFIG.ENDPOINTS.SUPPLIERS.UPDATE}/${id}`,
-        method: 'PUT',
+        endpoint: API_CONFIG.ENDPOINTS.SUPPLIERS.SAVE,
+        method: 'POST',
         data: payload
       })
       return response
@@ -122,7 +122,7 @@ class SupplierService {
   /**
    * Search suppliers by query
    */
-  async search(query: string, filters: any = {}): Promise<SuppliersApiResponse> {
+  async search(query: string, filters: any = {}): Promise<SuppliersApiClientResponse> {
     try {
       const params = {
         search: query,

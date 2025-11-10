@@ -1,7 +1,7 @@
 // features/supplier/components/SuppliersTable.tsx
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Table,
   TableBody,
@@ -12,273 +12,311 @@ import {
   Paper,
   IconButton,
   Chip,
-  Typography,
   Box,
+  Typography,
   Tooltip,
-  Menu,
-  MenuItem,
-  Avatar
+  TableSortLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Snackbar,
+  Alert
 } from '@mui/material'
-import {
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  MoreVert as MoreVertIcon,
-  Visibility as ViewIcon,
-  Business as BusinessIcon
-} from '@mui/icons-material'
-import type { Supplier, SupplierType, SupplierClassification } from '../types'
+import { Edit as EditIcon, Delete as DeleteIcon, Business as BusinessIcon } from '@mui/icons-material'
+
+import SmartPagination from '@/components/pagination/SmartPagination'
+import { useSuppliersRedux } from '../hooks/useSuppliersRedux'
+import type { Supplier, SupplierFilters } from '../types'
 
 interface SuppliersTableProps {
-  suppliers: Supplier[]
-  loading?: boolean
-  onEdit: (supplier: Supplier) => void
-  onDelete: (supplier: Supplier) => void
-  onView?: (supplier: Supplier) => void
+  filters?: SupplierFilters
 }
 
-const getTypeColor = (type: SupplierType) => {
-  switch (type) {
-    case 'local':
-      return 'primary'
-    case 'foreign':
-      return 'secondary'
-    default:
-      return 'default'
-  }
-}
+const SuppliersTableComponent: React.FC<SuppliersTableProps> = ({ filters = {} }) => {
+  // Estado local para el diálogo de confirmación de eliminación
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null)
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error' | 'warning' | 'info'
+  })
 
-const getTypeLabel = (type: SupplierType) => {
-  switch (type) {
-    case 'local':
-      return 'Local'
-    case 'foreign':
-      return 'Extranjero'
-    default:
-      return type
-  }
-}
+  // Redux state
+  const {
+    suppliers,
+    loading,
+    meta,
+    needsReload,
+    pagination,
+    loadSuppliers,
+    deleteSupplier,
+    setNeedsReload,
+    setCurrentPage,
+    setRowsPerPage,
+    resetPagination,
+    openForm
+  } = useSuppliersRedux()
 
-const getClassificationColor = (classification: SupplierClassification) => {
-  switch (classification) {
-    case 'large':
-      return 'error'
-    case 'medium':
-      return 'warning'
-    case 'small':
-      return 'info'
-    case 'none':
-      return 'default'
-    case 'other':
-      return 'secondary'
-    default:
-      return 'default'
-  }
-}
+  const { currentPage, rowsPerPage } = pagination
 
-const getClassificationLabel = (classification: SupplierClassification) => {
-  switch (classification) {
-    case 'none':
-      return 'Ninguna'
-    case 'small':
-      return 'Pequeña'
-    case 'medium':
-      return 'Mediana'
-    case 'large':
-      return 'Grande'
-    case 'other':
-      return 'Otra'
-    default:
-      return classification
-  }
-}
+  // Memoizar la función de carga para evitar dependencias circulares
+  const loadSuppliersWithFilters = useCallback(() => {
+    loadSuppliers({
+      page: currentPage,
+      per_page: rowsPerPage,
+      ...filters
+    })
+  }, [loadSuppliers, currentPage, rowsPerPage, JSON.stringify(filters)])
 
-const getStatusColor = (isActive: boolean) => {
-  return isActive ? 'success' : 'error'
-}
+  // Load initial data and reload when filters or pagination change
+  useEffect(() => {
+    loadSuppliersWithFilters()
+  }, [currentPage, rowsPerPage, loadSuppliersWithFilters])
 
-const getStatusLabel = (isActive: boolean) => {
-  return isActive ? 'Activo' : 'Inactivo'
-}
-
-export const SuppliersTable: React.FC<SuppliersTableProps> = ({
-  suppliers,
-  loading = false,
-  onEdit,
-  onDelete,
-  onView
-}) => {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
-  const [selectedSupplier, setSelectedSupplier] = React.useState<Supplier | null>(null)
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, supplier: Supplier) => {
-    setAnchorEl(event.currentTarget)
-    setSelectedSupplier(supplier)
-  }
-
-  const handleMenuClose = () => {
-    setAnchorEl(null)
-    setSelectedSupplier(null)
-  }
-
-  const handleEdit = () => {
-    if (selectedSupplier) {
-      onEdit(selectedSupplier)
+  // Recargar suppliers cuando se marque needsReload
+  useEffect(() => {
+    if (needsReload) {
+      loadSuppliersWithFilters()
+      setNeedsReload(false)
     }
-    handleMenuClose()
-  }
+  }, [needsReload, loadSuppliersWithFilters, setNeedsReload])
 
-  const handleDelete = () => {
-    if (selectedSupplier) {
-      onDelete(selectedSupplier)
+  // Reset pagination cuando cambien los filtros
+  useEffect(() => {
+    resetPagination()
+  }, [JSON.stringify(filters), resetPagination])
+
+  // Ajustar página si está fuera del rango disponible
+  useEffect(() => {
+    if (meta && meta.last_page > 0 && currentPage > meta.last_page) {
+      setCurrentPage(meta.last_page)
     }
-    handleMenuClose()
+  }, [meta?.last_page, currentPage, setCurrentPage])
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
   }
 
-  const handleView = () => {
-    if (selectedSupplier && onView) {
-      onView(selectedSupplier)
+  const handlePerPageChange = (perPage: number) => {
+    setRowsPerPage(perPage) // Esto ya resetea a página 1 internamente
+  }
+
+  // Handlers para eliminación
+  const handleDeleteClick = (supplier: Supplier) => {
+    setSupplierToDelete(supplier)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (supplierToDelete) {
+      try {
+        await deleteSupplier(supplierToDelete.id).unwrap()
+        setSnackbar({
+          open: true,
+          message: 'Proveedor eliminado exitosamente',
+          severity: 'success'
+        })
+        // The table will refresh automatically through needsReload
+      } catch (err) {
+        setSnackbar({
+          open: true,
+          message: 'Error al eliminar el proveedor',
+          severity: 'error'
+        })
+      }
     }
-    handleMenuClose()
+    setDeleteConfirmOpen(false)
+    setSupplierToDelete(null)
   }
 
-  if (loading) {
-    return (
-      <Paper>
-        <Box sx={{ p: 3, textAlign: 'center' }}>
-          <Typography>Cargando proveedores...</Typography>
-        </Box>
-      </Paper>
-    )
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false })
   }
 
-  if (!suppliers || suppliers.length === 0) {
-    return (
-      <Paper>
-        <Box sx={{ p: 3, textAlign: 'center' }}>
-          <BusinessIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
-          <Typography variant='body1' color='text.secondary'>
-            No se encontraron proveedores
-          </Typography>
-        </Box>
-      </Paper>
-    )
+  const formatType = (type: string) => {
+    const types = {
+      local: 'Local',
+      foreign: 'Extranjero'
+    }
+    return types[type as keyof typeof types] || type
+  }
+
+  const formatClassification = (classification: string) => {
+    const classifications = {
+      none: 'Ninguna',
+      small: 'Pequeña',
+      medium: 'Mediana',
+      large: 'Grande',
+      other: 'Otra'
+    }
+    return classifications[classification as keyof typeof classifications] || classification
+  }
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'local':
+        return 'primary'
+      case 'foreign':
+        return 'secondary'
+      default:
+        return 'default'
+    }
+  }
+
+  const getClassificationColor = (classification: string) => {
+    switch (classification) {
+      case 'small':
+        return 'success'
+      case 'medium':
+        return 'warning'
+      case 'large':
+        return 'error'
+      case 'other':
+        return 'info'
+      default:
+        return 'default'
+    }
   }
 
   return (
-    <>
-      <TableContainer component={Paper}>
-        <Table>
+    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
+      <TableContainer sx={{ maxHeight: 600 }}>
+        <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>Proveedor</TableCell>
+              <TableCell>Razón Social</TableCell>
+              <TableCell>Nombre</TableCell>
               <TableCell>Tipo</TableCell>
               <TableCell>Clasificación</TableCell>
-              <TableCell>Contacto</TableCell>
-              <TableCell>Información Legal</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Teléfono</TableCell>
               <TableCell>Estado</TableCell>
               <TableCell align='center'>Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {suppliers
-              ?.filter(supplier => supplier != null)
-              ?.map(supplier => (
-                <TableRow key={supplier.id} hover>
+            {suppliers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} align='center'>
+                  <Box py={4}>
+                    <Typography variant='body1' color='text.secondary'>
+                      No se encontraron proveedores
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : (
+              suppliers.map(supplier => (
+                <TableRow
+                  key={supplier.id}
+                  hover
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: 'action.hover'
+                    }
+                  }}
+                >
                   <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>{supplier.business_name?.charAt(0) || 'P'}</Avatar>
-                      <Box>
-                        <Typography variant='body2' fontWeight='medium'>
-                          {supplier.business_name}
-                        </Typography>
-                        {supplier.name && (
-                          <Typography variant='caption' color='text.secondary'>
-                            {supplier.name}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
+                    <Typography variant='body2' fontWeight='medium'>
+                      {supplier.business_name}
+                    </Typography>
+                    {supplier.tax_id && (
+                      <Typography variant='caption' color='text.secondary'>
+                        {supplier.tax_id}
+                      </Typography>
+                    )}
                   </TableCell>
-
                   <TableCell>
-                    <Chip label={getTypeLabel(supplier.type)} color={getTypeColor(supplier.type)} size='small' />
+                    <Typography variant='body2'>{supplier.name || '-'}</Typography>
                   </TableCell>
-
                   <TableCell>
                     <Chip
-                      label={getClassificationLabel(supplier.classification)}
-                      color={getClassificationColor(supplier.classification)}
+                      label={formatType(supplier.type)}
+                      color={getTypeColor(supplier.type) as any}
                       size='small'
                       variant='outlined'
                     />
                   </TableCell>
-
-                  <TableCell>
-                    <Box>
-                      <Typography variant='body2'>{supplier.email}</Typography>
-                      <Typography variant='caption' color='text.secondary'>
-                        {supplier.phone}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-
-                  <TableCell>
-                    <Box>
-                      {supplier.tax_id && <Typography variant='body2'>NIT: {supplier.tax_id}</Typography>}
-                      {supplier.registration_number && (
-                        <Typography variant='caption' color='text.secondary'>
-                          Reg: {supplier.registration_number}
-                        </Typography>
-                      )}
-                    </Box>
-                  </TableCell>
-
                   <TableCell>
                     <Chip
-                      label={getStatusLabel(supplier.is_active)}
-                      color={getStatusColor(supplier.is_active)}
+                      label={formatClassification(supplier.classification)}
+                      color={getClassificationColor(supplier.classification) as any}
+                      size='small'
+                      variant='outlined'
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant='body2'>{supplier.email}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant='body2'>{supplier.phone}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={supplier.is_active ? 'Activo' : 'Inactivo'}
+                      color={supplier.is_active ? 'success' : 'default'}
                       size='small'
                     />
                   </TableCell>
-
                   <TableCell align='center'>
-                    <Tooltip title='Más opciones'>
-                      <IconButton size='small' onClick={e => handleMenuClick(e, supplier)}>
-                        <MoreVertIcon />
-                      </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                      <Tooltip title='Editar'>
+                        <IconButton size='small' color='primary' onClick={() => openForm('edit', supplier)}>
+                          <EditIcon fontSize='small' />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title='Eliminar'>
+                        <IconButton size='small' color='error' onClick={() => handleDeleteClick(supplier)}>
+                          <DeleteIcon fontSize='small' />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                   </TableCell>
                 </TableRow>
-              ))}
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Actions Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-      >
-        {onView && (
-          <MenuItem onClick={handleView}>
-            <ViewIcon sx={{ mr: 1, fontSize: 20 }} />
-            Ver Detalles
-          </MenuItem>
-        )}
-        <MenuItem onClick={handleEdit}>
-          <EditIcon sx={{ mr: 1, fontSize: 20 }} />
-          Editar
-        </MenuItem>
-        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
-          <DeleteIcon sx={{ mr: 1, fontSize: 20 }} />
-          Eliminar
-        </MenuItem>
-      </Menu>
-    </>
+      {/* SmartPagination integrado */}
+      <SmartPagination
+        currentPage={currentPage}
+        totalPages={meta?.last_page || 1}
+        totalItems={meta?.total || 0}
+        perPage={rowsPerPage}
+        onPageChange={handlePageChange}
+        onPerPageChange={handlePerPageChange}
+        disabled={loading}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogTitle>Confirmar eliminación</DialogTitle>
+        <DialogContent>
+          ¿Estás seguro de que deseas eliminar el proveedor "{supplierToDelete?.business_name}"? Esta acción no se puede
+          deshacer.
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancelar</Button>
+          <Button onClick={handleConfirmDelete} color='error' variant='contained' disabled={loading}>
+            {loading ? 'Eliminando...' : 'Eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Paper>
   )
 }
 
-export default SuppliersTable
+export default SuppliersTableComponent

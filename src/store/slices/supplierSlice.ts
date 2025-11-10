@@ -3,91 +3,158 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 import { supplierService } from '@/features/supplier/services/supplierService'
-import type { Supplier, SuppliersApiResponse, CreateSupplierRequest, SupplierFilters } from '@/features/supplier/types'
+import type {
+  Supplier,
+  SuppliersApiClientResponse,
+  SuppliersApiResponse,
+  CreateSupplierRequest,
+  SupplierFilters
+} from '@/features/supplier/types'
 
 // Async thunks
-export const fetchSuppliers = createAsyncThunk(
-  'suppliers/fetchSuppliers',
-  async (params: { page?: number; filters?: SupplierFilters; pageSize?: number }) => {
+export const fetchSuppliers = createAsyncThunk<
+  SuppliersApiResponse | SuppliersApiClientResponse, // Tipo de retorno: puede ser cualquiera de los dos
+  { page?: number; filters?: SupplierFilters; pageSize?: number }
+>('suppliers/fetchSuppliers', async (params, { rejectWithValue }) => {
+  try {
     const { page = 1, filters = {}, pageSize = 15 } = params
     const response = await supplierService.getAll({
-      ...filters,
       page,
-      per_page: pageSize
+      per_page: pageSize,
+      ...filters
     })
-    // The apiClient already extracts the data property, so response is the pagination data
-    return response as any // Cast to any to handle the extracted pagination structure
+    return response
+  } catch (error: any) {
+    console.error('Error fetching suppliers:', error)
+    return rejectWithValue(error.message || 'Error al obtener proveedores')
+  }
+})
+
+export const createSupplier = createAsyncThunk(
+  'suppliers/createSupplier',
+  async (data: CreateSupplierRequest, { rejectWithValue }) => {
+    try {
+      const supplier = await supplierService.create(data)
+      return supplier
+    } catch (error: any) {
+      // Si es un ApiError con errores de validación, los incluimos
+      if (error.errors) {
+        return rejectWithValue({
+          message: error.message || 'Error al crear proveedor',
+          validationErrors: error.errors
+        })
+      }
+      return rejectWithValue({
+        message: error.message || 'Error al crear proveedor',
+        validationErrors: null
+      })
+    }
   }
 )
-
-export const createSupplier = createAsyncThunk('suppliers/createSupplier', async (data: CreateSupplierRequest) => {
-  const supplier = await supplierService.create(data)
-  return supplier
-})
 
 export const updateSupplier = createAsyncThunk(
   'suppliers/updateSupplier',
-  async ({ id, data }: { id: number; data: CreateSupplierRequest }) => {
-    const supplier = await supplierService.update(id, data)
-    return supplier
+  async ({ id, data }: { id: number; data: CreateSupplierRequest }, { rejectWithValue }) => {
+    try {
+      const supplier = await supplierService.update(id, data)
+      return supplier
+    } catch (error: any) {
+      // Si es un ApiError con errores de validación, los incluimos
+      if (error.errors) {
+        return rejectWithValue({
+          message: error.message || 'Error al actualizar proveedor',
+          validationErrors: error.errors
+        })
+      }
+      return rejectWithValue({
+        message: error.message || 'Error al actualizar proveedor',
+        validationErrors: null
+      })
+    }
   }
 )
 
-export const deleteSupplier = createAsyncThunk('suppliers/deleteSupplier', async (id: number) => {
-  await supplierService.delete(id)
-  return id
+export const deleteSupplier = createAsyncThunk('suppliers/deleteSupplier', async (id: number, { rejectWithValue }) => {
+  try {
+    await supplierService.delete(id)
+    return id
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Error al eliminar proveedor')
+  }
 })
 
-export const searchSuppliers = createAsyncThunk(
-  'suppliers/searchSuppliers',
-  async (params: { query: string; filters?: SupplierFilters }) => {
-    const { query, filters = {} } = params
-    const response = await supplierService.search(query, filters)
-    return response.data
+export const searchSuppliers = createAsyncThunk<
+  SuppliersApiResponse | SuppliersApiClientResponse,
+  { query: string; filters?: SupplierFilters; pageSize?: number }
+>('suppliers/searchSuppliers', async (params, { rejectWithValue }) => {
+  try {
+    const { query, filters = {}, pageSize = 15 } = params
+    const searchFilters = {
+      ...filters,
+      per_page: pageSize
+    }
+    const response = await supplierService.search(query, searchFilters)
+    return response
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Error al buscar proveedores')
   }
-)
+})
+
+// Helper function para extraer datos de paginación de la respuesta
+const extractPaginationData = (payload: SuppliersApiResponse | SuppliersApiClientResponse) => {
+  // Caso 1: Respuesta completa del API { status, message, data: {...} }
+  if ('status' in payload && 'data' in payload && payload.data && typeof payload.data === 'object') {
+    return payload.data
+  }
+  // Caso 2: ApiClient ya extrajo 'data' - solo estructura de paginación { current_page, data: [], ... }
+  else if ('current_page' in payload && 'data' in payload) {
+    return payload
+  }
+  return null
+}
 
 // Initial state
 interface SupplierState {
   suppliers: Supplier[]
-  loading: {
-    list: boolean
-    create: boolean
-    update: boolean
-    delete: boolean
-    search: boolean
-  }
+  loading: boolean
   error: string | null
+  validationErrors: Record<string, string[]> | null
   filters: SupplierFilters
+  selectedSupplier: Supplier | null
+  needsReload: boolean
+  // Estado del formulario
+  isFormOpen: boolean
+  formMode: 'create' | 'edit'
+  // Estado de paginación local (separado de meta del servidor)
   pagination: {
     currentPage: number
-    totalPages: number
-    totalItems: number
-    perPage: number
-    hasNextPage: boolean
-    hasPreviousPage: boolean
+    rowsPerPage: number
   }
+  meta: {
+    current_page: number
+    from: number
+    last_page: number
+    per_page: number
+    to: number
+    total: number
+  } | null
 }
 
 const initialState: SupplierState = {
   suppliers: [],
-  loading: {
-    list: false,
-    create: false,
-    update: false,
-    delete: false,
-    search: false
-  },
+  loading: false,
   error: null,
+  validationErrors: null,
   filters: {},
+  selectedSupplier: null,
+  needsReload: false,
+  isFormOpen: false,
+  formMode: 'create',
   pagination: {
     currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-    perPage: 15,
-    hasNextPage: false,
-    hasPreviousPage: false
-  }
+    rowsPerPage: 15
+  },
+  meta: null
 }
 
 // Slice
@@ -95,178 +162,196 @@ const supplierSlice = createSlice({
   name: 'suppliers',
   initialState,
   reducers: {
-    setSupplierFilters: (state, action: PayloadAction<SupplierFilters>) => {
-      state.filters = action.payload
-    },
-    clearSupplierFilters: state => {
-      state.filters = {}
-    },
-    clearSupplierError: state => {
+    clearError: state => {
       state.error = null
     },
-    resetSuppliers: state => {
-      state.suppliers = []
-      state.pagination = initialState.pagination
+    clearValidationErrors: state => {
+      state.validationErrors = null
     },
-    resetSupplierLoadingStates: state => {
-      state.loading = {
-        list: false,
-        create: false,
-        update: false,
-        delete: false,
-        search: false
+    setSelectedSupplier: (state, action: PayloadAction<Supplier | null>) => {
+      state.selectedSupplier = action.payload
+    },
+    clearSelectedSupplier: state => {
+      state.selectedSupplier = null
+    },
+    setFilters: (state, action: PayloadAction<SupplierFilters>) => {
+      state.filters = action.payload
+    },
+    clearFilters: state => {
+      state.filters = {}
+    },
+    setNeedsReload: (state, action: PayloadAction<boolean>) => {
+      state.needsReload = action.payload
+    },
+    setCurrentPage: (state, action: PayloadAction<number>) => {
+      state.pagination.currentPage = action.payload
+    },
+    setRowsPerPage: (state, action: PayloadAction<number>) => {
+      state.pagination.rowsPerPage = action.payload
+      // Resetear a página 1 cuando cambie el tamaño de página
+      state.pagination.currentPage = 1
+    },
+    resetPagination: state => {
+      state.pagination.currentPage = 1
+    },
+    // Form state actions
+    openForm: (state, action: PayloadAction<{ mode: 'create' | 'edit'; supplier?: Supplier }>) => {
+      state.isFormOpen = true
+      state.formMode = action.payload.mode
+      if (action.payload.mode === 'edit' && action.payload.supplier) {
+        state.selectedSupplier = action.payload.supplier
+      } else {
+        state.selectedSupplier = null
       }
+    },
+    closeForm: state => {
+      state.isFormOpen = false
+      state.selectedSupplier = null
     }
   },
   extraReducers: builder => {
-    // Fetch suppliers
     builder
+      // Fetch suppliers
       .addCase(fetchSuppliers.pending, state => {
-        if (typeof state.loading !== 'object' || state.loading === null) {
-          state.loading = {
-            list: false,
-            create: false,
-            update: false,
-            delete: false,
-            search: false
-          }
-        }
-        state.loading.list = true
+        state.loading = true
         state.error = null
       })
       .addCase(fetchSuppliers.fulfilled, (state, action) => {
-        if (typeof state.loading !== 'object' || state.loading === null) {
-          state.loading = {
-            list: false,
-            create: false,
-            update: false,
-            delete: false,
-            search: false
-          }
-        }
-        state.loading.list = false
+        state.loading = false
+        state.needsReload = false // Limpiar flag de recarga
 
-        // Handle different response structures
-        if (Array.isArray(action.payload)) {
-          // Direct array response
-          state.suppliers = action.payload
-          state.pagination = {
-            currentPage: 1,
-            totalPages: 1,
-            totalItems: action.payload.length,
-            perPage: action.payload.length,
-            hasNextPage: false,
-            hasPreviousPage: false
+        const paginationData = extractPaginationData(action.payload)
+
+        if (paginationData && 'data' in paginationData && Array.isArray(paginationData.data)) {
+          state.suppliers = paginationData.data
+          state.meta = {
+            current_page: paginationData.current_page || 1,
+            from: paginationData.from || 0,
+            last_page: paginationData.last_page || 1,
+            per_page: paginationData.per_page || 15,
+            to: paginationData.to || 0,
+            total: paginationData.total || 0
           }
         } else {
-          // Paginated response structure
-          state.suppliers = action.payload.data || []
-          state.pagination = {
-            currentPage: action.payload.current_page,
-            totalPages: action.payload.last_page,
-            totalItems: action.payload.total,
-            perPage: action.payload.per_page,
-            hasNextPage: action.payload.next_page_url !== null,
-            hasPreviousPage: action.payload.prev_page_url !== null
-          }
+          // Fallback
+          console.error('Unexpected suppliers response structure:', action.payload)
+          state.suppliers = []
+          state.meta = null
         }
       })
       .addCase(fetchSuppliers.rejected, (state, action) => {
-        if (typeof state.loading !== 'object' || state.loading === null) {
-          state.loading = {
-            list: false,
-            create: false,
-            update: false,
-            delete: false,
-            search: false
-          }
-        }
-        state.loading.list = false
-        state.error = action.error.message || 'Error fetching suppliers'
+        state.loading = false
+        state.error = action.payload as string
       })
-
-    // Create supplier
-    builder
+      // Create supplier
       .addCase(createSupplier.pending, state => {
-        state.loading.create = true
+        state.loading = true
         state.error = null
+        state.validationErrors = null
       })
       .addCase(createSupplier.fulfilled, (state, action) => {
-        state.loading.create = false
-        // Add new supplier to the beginning of the list
-        state.suppliers.unshift(action.payload)
-        state.pagination.totalItems += 1
+        state.loading = false
+        state.error = null
+        state.validationErrors = null
+        // Marcar que necesita recarga
+        state.needsReload = true
       })
       .addCase(createSupplier.rejected, (state, action) => {
-        state.loading.create = false
-        state.error = action.error.message || 'Error creating supplier'
-      })
-
-    // Update supplier
-    builder
-      .addCase(updateSupplier.pending, state => {
-        state.loading.update = true
-        state.error = null
-      })
-      .addCase(updateSupplier.fulfilled, (state, action) => {
-        state.loading.update = false
-        const index = state.suppliers.findIndex(s => s.id === action.payload.id)
-        if (index !== -1) {
-          state.suppliers[index] = action.payload
+        state.loading = false
+        const payload = action.payload as any
+        if (payload && typeof payload === 'object') {
+          state.error = payload.message
+          state.validationErrors = payload.validationErrors
+        } else {
+          state.error = payload as string
+          state.validationErrors = null
         }
       })
-      .addCase(updateSupplier.rejected, (state, action) => {
-        state.loading.update = false
-        state.error = action.error.message || 'Error updating supplier'
+      // Update supplier
+      .addCase(updateSupplier.pending, state => {
+        state.loading = true
+        state.error = null
+        state.validationErrors = null
       })
-
-    // Delete supplier
-    builder
+      .addCase(updateSupplier.fulfilled, (state, action) => {
+        state.loading = false
+        state.error = null
+        state.validationErrors = null
+        // Marcar que necesita recarga para mantener consistencia
+        state.needsReload = true
+      })
+      .addCase(updateSupplier.rejected, (state, action) => {
+        state.loading = false
+        const payload = action.payload as any
+        if (payload && typeof payload === 'object') {
+          state.error = payload.message
+          state.validationErrors = payload.validationErrors
+        } else {
+          state.error = payload as string
+          state.validationErrors = null
+        }
+      })
+      // Delete supplier
       .addCase(deleteSupplier.pending, state => {
-        state.loading.delete = true
+        state.loading = true
         state.error = null
       })
       .addCase(deleteSupplier.fulfilled, (state, action) => {
-        state.loading.delete = false
-        state.suppliers = state.suppliers.filter(s => s.id !== action.payload)
-        state.pagination.totalItems -= 1
+        state.loading = false
+        // Marcar que necesita recarga
+        state.needsReload = true
       })
       .addCase(deleteSupplier.rejected, (state, action) => {
-        state.loading.delete = false
-        state.error = action.error.message || 'Error deleting supplier'
+        state.loading = false
+        state.error = action.payload as string
       })
-
-    // Search suppliers
-    builder
+      // Search suppliers
       .addCase(searchSuppliers.pending, state => {
-        state.loading.search = true
+        state.loading = true
         state.error = null
       })
       .addCase(searchSuppliers.fulfilled, (state, action) => {
-        state.loading.search = false
-        state.suppliers = action.payload.data || []
-        state.pagination = {
-          currentPage: action.payload.current_page,
-          totalPages: action.payload.last_page,
-          totalItems: action.payload.total,
-          perPage: action.payload.per_page,
-          hasNextPage: action.payload.next_page_url !== null,
-          hasPreviousPage: action.payload.prev_page_url !== null
+        state.loading = false
+
+        const paginationData = extractPaginationData(action.payload)
+
+        if (paginationData && 'data' in paginationData && Array.isArray(paginationData.data)) {
+          state.suppliers = paginationData.data
+          state.meta = {
+            current_page: paginationData.current_page || 1,
+            from: paginationData.from || 0,
+            last_page: paginationData.last_page || 1,
+            per_page: paginationData.per_page || 15,
+            to: paginationData.to || 0,
+            total: paginationData.total || 0
+          }
+        } else {
+          // Fallback
+          console.error('Unexpected search suppliers response structure:', action.payload)
+          state.suppliers = []
+          state.meta = null
         }
       })
       .addCase(searchSuppliers.rejected, (state, action) => {
-        state.loading.search = false
-        state.error = action.error.message || 'Error searching suppliers'
+        state.loading = false
+        state.error = action.payload as string
       })
   }
 })
 
 export const {
-  setSupplierFilters,
-  clearSupplierFilters,
-  clearSupplierError,
-  resetSuppliers,
-  resetSupplierLoadingStates
+  clearError,
+  clearValidationErrors,
+  setSelectedSupplier,
+  clearSelectedSupplier,
+  setFilters,
+  clearFilters,
+  setNeedsReload,
+  setCurrentPage,
+  setRowsPerPage,
+  resetPagination,
+  openForm,
+  closeForm
 } = supplierSlice.actions
 
 export default supplierSlice.reducer
