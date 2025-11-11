@@ -21,7 +21,7 @@ import { useSuppliersRedux } from '@/features/supplier/hooks/useSuppliersRedux'
 import SupplierForm from '@/features/supplier/components/SupplierForm'
 import SuppliersTable from '@/features/supplier/components/SuppliersTable'
 import SupplierFilters from '@/features/supplier/components/SupplierFilters'
-import type { Supplier, SupplierFilters as SupplierFiltersType } from '@/features/supplier/types'
+import type { Supplier } from '@/features/supplier/types'
 
 const SuppliersPage = () => {
   const [snackbar, setSnackbar] = useState({
@@ -31,23 +31,8 @@ const SuppliersPage = () => {
   })
 
   // Redux state
-  const {
-    suppliers,
-    loading,
-    error,
-    filters,
-    selectedSupplier,
-    searchSuppliers,
-    clearError,
-    setSelectedSupplier,
-    clearSelectedSupplier,
-    setFilters,
-    setNeedsReload,
-    isFormOpen,
-    formMode,
-    openForm,
-    closeForm
-  } = useSuppliersRedux()
+  const { suppliers, loading, error, clearError, setNeedsReload, isFormOpen, formMode, openForm, closeForm } =
+    useSuppliersRedux()
 
   // Calculate stats from suppliers
   const stats = React.useMemo(() => {
@@ -91,25 +76,6 @@ const SuppliersPage = () => {
   const handleRefresh = () => {
     // Force a complete reload by setting needsReload
     setNeedsReload(true)
-  }
-
-  const handleFiltersChange = (newFilters: SupplierFiltersType) => {
-    setFilters(newFilters)
-
-    // Si se están limpiando todos los filtros, forzar recarga para volver a datos originales
-    const hasActiveFilters = Object.values(newFilters).some(
-      value => value !== undefined && value !== null && value !== ''
-    )
-
-    if (!hasActiveFilters) {
-      // Limpiar error y forzar recarga completa
-      clearError()
-      setNeedsReload(true)
-    }
-  }
-
-  const handleSearch = (query: string) => {
-    searchSuppliers({ query, filters, pageSize: 15 })
   }
 
   const handleCloseSnackbar = () => {
@@ -219,7 +185,7 @@ const SuppliersPage = () => {
 
       {/* Filters */}
       <Box mb={3}>
-        <SupplierFilters filters={filters} onFiltersChange={handleFiltersChange} onSearch={handleSearch} />
+        <SupplierFilters />
       </Box>
 
       {/* Error Display */}
@@ -230,7 +196,7 @@ const SuppliersPage = () => {
       )}
 
       {/* Suppliers Table con paginador integrado */}
-      <SuppliersTable filters={filters} />
+      <SuppliersTable />
 
       {/* Supplier Form Dialog */}
       <SupplierForm open={isFormOpen} mode={formMode} onClose={handleCloseForm} onSuccess={handleFormSuccess} />

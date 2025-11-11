@@ -25,7 +25,6 @@ export const fetchSuppliers = createAsyncThunk<
     })
     return response
   } catch (error: any) {
-    console.error('Error fetching suppliers:', error)
     return rejectWithValue(error.message || 'Error al obtener proveedores')
   }
 })
@@ -232,6 +231,12 @@ const supplierSlice = createSlice({
             to: paginationData.to || 0,
             total: paginationData.total || 0
           }
+
+          // Actualizar filtros en el estado Redux con los filtros utilizados
+          const { filters } = (action as any).meta.arg || {}
+          if (filters) {
+            state.filters = filters
+          }
         } else {
           // Fallback
           console.error('Unexpected suppliers response structure:', action.payload)
@@ -324,6 +329,13 @@ const supplierSlice = createSlice({
             per_page: paginationData.per_page || 15,
             to: paginationData.to || 0,
             total: paginationData.total || 0
+          }
+
+          // Actualizar filtros en el estado Redux con la búsqueda realizada
+          const { query, filters: searchFilters } = (action as any).meta.arg
+          state.filters = {
+            ...searchFilters,
+            search: query
           }
         } else {
           // Fallback

@@ -19,17 +19,21 @@ import {
 } from '@mui/material'
 import { Search as SearchIcon, Clear as ClearIcon, FilterList as FilterIcon } from '@mui/icons-material'
 
+import { useSuppliersRedux } from '../hooks/useSuppliersRedux'
 import type { SupplierFilters, SupplierType, SupplierClassification } from '../types'
 
 interface SupplierFiltersProps {
-  filters: SupplierFilters
-  onFiltersChange: (filters: SupplierFilters) => void
-  onSearch: (query: string) => void
+  // No props needed - everything through Redux
 }
 
-const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = ({ filters, onFiltersChange, onSearch }) => {
+const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = () => {
+  // Redux state y actions
+  const { filters, pagination, setFilters, clearFilters, searchSuppliers, clearError, setNeedsReload } =
+    useSuppliersRedux()
+
   const [localFilters, setLocalFilters] = useState<SupplierFilters>(filters)
   const [searchQuery, setSearchQuery] = useState(filters.search || '')
+  const [emailQuery, setEmailQuery] = useState(filters.email || '')
 
   // Type and classification options
   const typeOptions: { value: SupplierType; label: string }[] = [
@@ -48,12 +52,13 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = ({ filters, onF
   useEffect(() => {
     setLocalFilters(filters)
     setSearchQuery(filters.search || '')
+    setEmailQuery(filters.email || '')
   }, [filters])
 
   const handleFilterChange = (key: keyof SupplierFilters, value: any) => {
     const newFilters = { ...localFilters, [key]: value }
     setLocalFilters(newFilters)
-    onFiltersChange(newFilters)
+    setFilters(newFilters) // Usar Redux directamente
   }
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,23 +70,52 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = ({ filters, onF
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      // Solo ejecutar búsqueda, no actualizar filtros aquí
-      // Los filtros se actualizarán cuando la tabla recargue
-      onSearch(searchQuery.trim())
+      // Usar el pageSize actual del paginador en lugar de un valor hardcodeado
+      searchSuppliers({
+        query: searchQuery.trim(),
+        filters,
+        pageSize: pagination.rowsPerPage
+      })
     } else {
       // Si no hay query, limpiar búsqueda de filtros
       const newFilters = { ...localFilters }
       delete newFilters.search
       setLocalFilters(newFilters)
-      onFiltersChange(newFilters)
+      setFilters(newFilters)
     }
   }
 
-  const clearFilters = () => {
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const email = event.target.value
+    setEmailQuery(email)
+    // Solo actualizar el estado local, no aplicar filtro inmediatamente
+  }
+
+  const handleEmailSubmit = () => {
+    const newFilters = { ...localFilters }
+    if (emailQuery.trim()) {
+      newFilters.email = emailQuery.trim()
+    } else {
+      delete newFilters.email
+    }
+    setLocalFilters(newFilters)
+    setFilters(newFilters)
+  }
+
+  const handleEmailBlur = () => {
+    handleEmailSubmit()
+  }
+
+  const handleClearFilters = () => {
     const emptyFilters: SupplierFilters = {}
     setLocalFilters(emptyFilters)
     setSearchQuery('')
-    onFiltersChange(emptyFilters)
+    setEmailQuery('')
+    setFilters(emptyFilters)
+
+    // Limpiar error y forzar recarga completa usando Redux
+    clearError()
+    setNeedsReload(true)
   }
 
   const getActiveFiltersCount = () => {
@@ -114,7 +148,7 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = ({ filters, onF
             )}
           </Box>
           {activeFiltersCount > 0 && (
-            <Button startIcon={<ClearIcon />} onClick={clearFilters} size='small' variant='outlined'>
+            <Button startIcon={<ClearIcon />} onClick={handleClearFilters} size='small' variant='outlined'>
               Limpiar
             </Button>
           )}
@@ -144,7 +178,7 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = ({ filters, onF
                         const newFilters = { ...localFilters }
                         delete newFilters.search
                         setLocalFilters(newFilters)
-                        onFiltersChange(newFilters)
+                        setFilters(newFilters)
                       }}
                     >
                       <ClearIcon />
@@ -235,9 +269,29 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = ({ filters, onF
             <TextField
               fullWidth
               label='Email'
-              value={localFilters.email || ''}
-              onChange={e => handleFilterChange('email', e.target.value)}
+              value={emailQuery}
+              onChange={handleEmailChange}
+              onBlur={handleEmailBlur}
+              onKeyPress={e => e.key === 'Enter' && handleEmailSubmit()}
               placeholder='Filtrar por email'
+              InputProps={{
+                endAdornment: emailQuery && (
+                  <InputAdornment position='end'>
+                    <Button
+                      size='small'
+                      onClick={() => {
+                        setEmailQuery('')
+                        const newFilters = { ...localFilters }
+                        delete newFilters.email
+                        setLocalFilters(newFilters)
+                        setFilters(newFilters)
+                      }}
+                    >
+                      <ClearIcon />
+                    </Button>
+                  </InputAdornment>
+                )
+              }}
             />
           </Grid>
         </Grid>

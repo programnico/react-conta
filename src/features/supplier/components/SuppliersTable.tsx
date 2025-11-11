@@ -31,10 +31,10 @@ import { useSuppliersRedux } from '../hooks/useSuppliersRedux'
 import type { Supplier, SupplierFilters } from '../types'
 
 interface SuppliersTableProps {
-  filters?: SupplierFilters
+  // No props needed - everything through Redux
 }
 
-const SuppliersTableComponent: React.FC<SuppliersTableProps> = ({ filters = {} }) => {
+const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
   // Estado local para el diálogo de confirmación de eliminación
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null)
@@ -51,6 +51,7 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = ({ filters = {} }
     meta,
     needsReload,
     pagination,
+    filters,
     loadSuppliers,
     deleteSupplier,
     setNeedsReload,
@@ -99,10 +100,22 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = ({ filters = {} }
   // Pagination handlers
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+    // Cargar datos con los filtros actuales para la nueva página
+    loadSuppliers({
+      page,
+      pageSize: rowsPerPage,
+      ...filters
+    })
   }
 
   const handlePerPageChange = (perPage: number) => {
     setRowsPerPage(perPage) // Esto ya resetea a página 1 internamente
+    // Cargar datos con los filtros actuales y el nuevo pageSize
+    loadSuppliers({
+      page: 1,
+      pageSize: perPage,
+      ...filters
+    })
   }
 
   // Handlers para eliminación
