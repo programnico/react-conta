@@ -64,18 +64,19 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
   const { currentPage, rowsPerPage } = pagination
 
   // Memoizar la función de carga para evitar dependencias circulares
+  const filtersString = JSON.stringify(filters)
   const loadSuppliersWithFilters = useCallback(() => {
     loadSuppliers({
       page: currentPage,
       per_page: rowsPerPage,
       ...filters
     })
-  }, [loadSuppliers, currentPage, rowsPerPage, JSON.stringify(filters)])
+  }, [loadSuppliers, currentPage, rowsPerPage, filtersString])
 
   // Load initial data and reload when filters or pagination change
   useEffect(() => {
     loadSuppliersWithFilters()
-  }, [currentPage, rowsPerPage, loadSuppliersWithFilters])
+  }, [loadSuppliersWithFilters])
 
   // Recargar suppliers cuando se marque needsReload
   useEffect(() => {
@@ -85,10 +86,22 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
     }
   }, [needsReload, loadSuppliersWithFilters, setNeedsReload])
 
-  // Reset pagination cuando cambien los filtros
+  // Reset pagination cuando cambien los filtros (pero no al cargar inicial)
+  const previousFiltersRef = React.useRef(filtersString)
+  const isInitialMount = React.useRef(true)
+
   useEffect(() => {
-    resetPagination()
-  }, [JSON.stringify(filters), resetPagination])
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      previousFiltersRef.current = filtersString
+      return
+    }
+
+    if (previousFiltersRef.current !== filtersString) {
+      previousFiltersRef.current = filtersString
+      resetPagination()
+    }
+  }, [filtersString, resetPagination])
 
   // Ajustar página si está fuera del rango disponible
   useEffect(() => {

@@ -232,11 +232,8 @@ const supplierSlice = createSlice({
             total: paginationData.total || 0
           }
 
-          // Actualizar filtros en el estado Redux con los filtros utilizados
-          const { filters } = (action as any).meta.arg || {}
-          if (filters) {
-            state.filters = filters
-          }
+          // No actualizar filtros aquí para evitar bucles infinitos
+          // Los filtros ya están correctamente gestionados en el componente
         } else {
           // Fallback
           console.error('Unexpected suppliers response structure:', action.payload)
@@ -331,12 +328,8 @@ const supplierSlice = createSlice({
             total: paginationData.total || 0
           }
 
-          // Actualizar filtros en el estado Redux con la búsqueda realizada
-          const { query, filters: searchFilters } = (action as any).meta.arg
-          state.filters = {
-            ...searchFilters,
-            search: query
-          }
+          // No actualizar filtros aquí para evitar bucles infinitos
+          // Los filtros ya están actualizados en el componente
         } else {
           // Fallback
           console.error('Unexpected search suppliers response structure:', action.payload)
