@@ -1,7 +1,7 @@
 // features/supplier/components/SuppliersTable.tsx
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   Table,
   TableBody,
@@ -26,16 +26,16 @@ import {
 } from '@mui/material'
 import { Edit as EditIcon, Delete as DeleteIcon, Business as BusinessIcon } from '@mui/icons-material'
 
-import SmartPagination from '@/components/pagination/SmartPagination'
 import { useSuppliersRedux } from '../hooks/useSuppliersRedux'
 import type { Supplier, SupplierFilters } from '../types'
+import SmartPagination from './SmartPagination'
 
 interface SuppliersTableProps {
   // No props needed - everything through Redux
 }
 
 const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
-  // Estado local para el diálogo de confirmación de eliminación
+  // Estado local para UI
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null)
   const [snackbar, setSnackbar] = useState({
@@ -48,7 +48,7 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
   const {
     suppliers,
     loading,
-    meta,
+    loadingStates,
     needsReload,
     pagination,
     filters,
@@ -61,77 +61,130 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
     openForm
   } = useSuppliersRedux()
 
-  const { currentPage, rowsPerPage } = pagination
+  const { currentPage, rowsPerPage, totalPages, totalRecords } = pagination
 
-  // Memoizar la función de carga para evitar dependencias circulares
-  const filtersString = JSON.stringify(filters)
-  const loadSuppliersWithFilters = useCallback(() => {
-    loadSuppliers({
-      page: currentPage,
-      per_page: rowsPerPage,
-      ...filters
-    })
-  }, [loadSuppliers, currentPage, rowsPerPage, filtersString])
+  // Referencias para controlar efectos
+  const isInitialMount = useRef(true)
+  const lastLoadParamsRef = useRef<string>('')
+  const loadTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Load initial data and reload when filters or pagination change
+  // Memoizar filtros para evitar recreaciones de JSON.stringify
+  const memoizedFilters = useMemo(() => filters, [JSON.stringify(filters)])
+
+  // === ÚNICO CONTROLADOR DE CARGA CON DEBOUNCE INTERNO ===
+  // Este useEffect maneja TODA la lógica de carga: inicial, filtros, paginación, needsReload
   useEffect(() => {
-    loadSuppliersWithFilters()
-  }, [loadSuppliersWithFilters])
-
-  // Recargar suppliers cuando se marque needsReload
-  useEffect(() => {
-    if (needsReload) {
-      loadSuppliersWithFilters()
-      setNeedsReload(false)
+    // Limpiar timeout previo
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current)
     }
-  }, [needsReload, loadSuppliersWithFilters, setNeedsReload])
 
-  // Reset pagination cuando cambien los filtros (pero no al cargar inicial)
-  const previousFiltersRef = React.useRef(filtersString)
-  const isInitialMount = React.useRef(true)
+    const executeLoad = () => {
+      // Parámetros actuales para la carga
+      const loadParams = {
+        page: currentPage,
+        per_page: rowsPerPage,
+        ...memoizedFilters
+      }
+      const paramsString = JSON.stringify(loadParams)
+
+      // Condiciones para cargar
+      const shouldLoad =
+        isInitialMount.current || // Carga inicial
+        needsReload || // Forzar recarga (CRUD operations, limpiar filtros, etc.)
+        lastLoadParamsRef.current !== paramsString // Cambio en filtros/paginación
+
+      // Prevenir llamada si ya está cargando la misma petición
+      const isAlreadyLoading = loadingStates?.fetching || loadingStates?.searching
+
+      if (shouldLoad && !isAlreadyLoading) {
+        console.log('🔄 Loading suppliers with params:', loadParams)
+
+        lastLoadParamsRef.current = paramsString
+
+        loadSuppliers(loadParams).finally(() => {
+          isInitialMount.current = false
+
+          // Limpiar needsReload solo si era por esa razón
+          if (needsReload) {
+            setNeedsReload(false)
+          }
+        })
+      } else if (isAlreadyLoading) {
+        console.log('⏳ Skip loading - already in progress')
+      } else {
+        console.log('⏭️  Skip loading - no changes detected')
+      }
+    }
+
+    // Para carga inicial o needsReload, ejecutar inmediatamente
+    if (isInitialMount.current || needsReload) {
+      executeLoad()
+    } else {
+      // Para otros cambios, debounce de 100ms para prevenir bucles
+      loadTimeoutRef.current = setTimeout(executeLoad, 100)
+    }
+
+    // Cleanup
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current)
+      }
+    }
+  }, [
+    currentPage,
+    rowsPerPage,
+    memoizedFilters,
+    needsReload,
+    loadingStates?.fetching,
+    loadingStates?.searching,
+    loadSuppliers,
+    setNeedsReload
+  ])
+
+  // === RESET PAGINATION CUANDO CAMBIEN FILTROS ===
+  const previousFiltersRef = useRef<string>('')
 
   useEffect(() => {
+    const filtersString = JSON.stringify(memoizedFilters)
+
+    // Skip inicial mount
     if (isInitialMount.current) {
-      isInitialMount.current = false
       previousFiltersRef.current = filtersString
       return
     }
 
+    // Solo resetear paginación si los filtros realmente cambiaron
     if (previousFiltersRef.current !== filtersString) {
+      console.log('📄 Filters changed, resetting pagination')
       previousFiltersRef.current = filtersString
-      resetPagination()
+      resetPagination() // Esto activará el useEffect principal para cargar página 1
     }
-  }, [filtersString, resetPagination])
+  }, [memoizedFilters, resetPagination])
 
-  // Ajustar página si está fuera del rango disponible
+  // === AJUSTAR PÁGINA SI ESTÁ FUERA DE RANGO ===
   useEffect(() => {
-    if (meta && meta.last_page > 0 && currentPage > meta.last_page) {
-      setCurrentPage(meta.last_page)
+    if (totalPages > 0 && currentPage > totalPages) {
+      console.log('📄 Current page out of range, adjusting to last page')
+      setCurrentPage(totalPages)
     }
-  }, [meta?.last_page, currentPage, setCurrentPage])
+  }, [totalPages, currentPage, setCurrentPage])
 
-  // Pagination handlers
+  // === PAGINATION HANDLERS (Solo cambian estado Redux, el useEffect principal carga) ===
+
   const handlePageChange = (page: number) => {
+    console.log('📄 Page change requested:', page)
     setCurrentPage(page)
-    // Cargar datos con los filtros actuales para la nueva página
-    loadSuppliers({
-      page,
-      pageSize: rowsPerPage,
-      ...filters
-    })
+    // El useEffect principal se encarga de cargar automáticamente
   }
 
   const handlePerPageChange = (perPage: number) => {
-    setRowsPerPage(perPage) // Esto ya resetea a página 1 internamente
-    // Cargar datos con los filtros actuales y el nuevo pageSize
-    loadSuppliers({
-      page: 1,
-      pageSize: perPage,
-      ...filters
-    })
+    console.log('📄 Per page change requested:', perPage)
+    setRowsPerPage(perPage) // Esto resetea a página 1 internamente
+    // El useEffect principal se encarga de cargar automáticamente
   }
 
-  // Handlers para eliminación
+  // === DELETE HANDLERS ===
   const handleDeleteClick = (supplier: Supplier) => {
     setSupplierToDelete(supplier)
     setDeleteConfirmOpen(true)
@@ -312,8 +365,8 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
       {/* SmartPagination integrado */}
       <SmartPagination
         currentPage={currentPage}
-        totalPages={meta?.last_page || 1}
-        totalItems={meta?.total || 0}
+        totalPages={totalPages}
+        totalItems={totalRecords}
         perPage={rowsPerPage}
         onPageChange={handlePageChange}
         onPerPageChange={handlePerPageChange}

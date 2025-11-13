@@ -25,6 +25,8 @@ import type { Supplier, CreateSupplierRequest, SupplierFilters } from '../types'
 
 export const useSuppliersRedux = () => {
   const dispatch = useDispatch<AppDispatch>()
+  const state = useSelector((state: RootState) => state.suppliers)
+
   const {
     suppliers,
     loading,
@@ -34,10 +36,18 @@ export const useSuppliersRedux = () => {
     selectedSupplier,
     needsReload,
     pagination,
-    meta,
     isFormOpen,
     formMode
-  } = useSelector((state: RootState) => state.suppliers)
+  } = state
+
+  // Fallback para loadingStates si no existe en el store actual
+  const loadingStates = state.loadingStates || {
+    fetching: false,
+    creating: false,
+    updating: false,
+    deleting: false,
+    searching: false
+  }
 
   // Action creators
   const loadSuppliers = useCallback(
@@ -136,13 +146,13 @@ export const useSuppliersRedux = () => {
     // State
     suppliers,
     loading,
+    loadingStates,
     error,
     validationErrors,
     filters,
     selectedSupplier,
     needsReload,
     pagination,
-    meta,
     isFormOpen,
     formMode,
 

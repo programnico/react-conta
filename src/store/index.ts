@@ -17,9 +17,22 @@ import usersReducer from './slices/usersSlice'
 // Persist configuration
 const persistConfig = {
   key: 'root',
-  version: 1, // Keep version 1 to preserve existing sessions
+  version: 2, // Increment version to force migration due to loadingStates addition
   storage,
-  whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products', 'chartOfAccounts', 'users'] // Persist auth, roles, purchases, suppliers, products, chartOfAccounts and users state
+  whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products', 'chartOfAccounts', 'users'], // Persist auth, roles, purchases, suppliers, products, chartOfAccounts and users state
+  migrate: (state: any) => {
+    // Migration for version 2: ensure loadingStates exists in supplier slice
+    if (state && state.suppliers && !state.suppliers.loadingStates) {
+      state.suppliers.loadingStates = {
+        fetching: false,
+        creating: false,
+        updating: false,
+        deleting: false,
+        searching: false
+      }
+    }
+    return state
+  }
 }
 
 // Root reducer with modular structure
