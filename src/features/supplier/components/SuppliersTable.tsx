@@ -98,8 +98,6 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
       const isAlreadyLoading = loadingStates?.fetching || loadingStates?.searching
 
       if (shouldLoad && !isAlreadyLoading) {
-        console.log('🔄 Loading suppliers with params:', loadParams)
-
         lastLoadParamsRef.current = paramsString
 
         loadSuppliers(loadParams).finally(() => {
@@ -110,10 +108,6 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
             setNeedsReload(false)
           }
         })
-      } else if (isAlreadyLoading) {
-        console.log('⏳ Skip loading - already in progress')
-      } else {
-        console.log('⏭️  Skip loading - no changes detected')
       }
     }
 
@@ -156,7 +150,6 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
 
     // Solo resetear paginación si los filtros realmente cambiaron
     if (previousFiltersRef.current !== filtersString) {
-      console.log('📄 Filters changed, resetting pagination')
       previousFiltersRef.current = filtersString
       resetPagination() // Esto activará el useEffect principal para cargar página 1
     }
@@ -165,7 +158,6 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
   // === AJUSTAR PÁGINA SI ESTÁ FUERA DE RANGO ===
   useEffect(() => {
     if (totalPages > 0 && currentPage > totalPages) {
-      console.log('📄 Current page out of range, adjusting to last page')
       setCurrentPage(totalPages)
     }
   }, [totalPages, currentPage, setCurrentPage])
@@ -173,13 +165,11 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
   // === PAGINATION HANDLERS (Solo cambian estado Redux, el useEffect principal carga) ===
 
   const handlePageChange = (page: number) => {
-    console.log('📄 Page change requested:', page)
     setCurrentPage(page)
     // El useEffect principal se encarga de cargar automáticamente
   }
 
   const handlePerPageChange = (perPage: number) => {
-    console.log('📄 Per page change requested:', perPage)
     setRowsPerPage(perPage) // Esto resetea a página 1 internamente
     // El useEffect principal se encarga de cargar automáticamente
   }

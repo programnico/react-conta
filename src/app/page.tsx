@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Box, CircularProgress, Typography } from '@mui/material'
 
 const HomePage = () => {
   const router = useRouter()
-  const [isRedirecting, setIsRedirecting] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(true)
 
   useEffect(() => {
     const checkAuthAndRedirect = () => {
       try {
+        // Solo ejecutar en el cliente para evitar diferencias de hidratación
+        if (typeof window === 'undefined') return
+
         // Verificar directamente en localStorage
         const persistedState = localStorage.getItem('persist:root')
 
@@ -21,7 +23,6 @@ const HomePage = () => {
 
             // Si tiene token y está autenticado, ir al dashboard
             if (authState.isAuthenticated && authState.accessToken) {
-              setIsRedirecting(true)
               router.replace('/dashboard')
               return
             }
@@ -29,28 +30,45 @@ const HomePage = () => {
         }
 
         // Si no está autenticado o no hay datos, ir al login
-        setIsRedirecting(true)
         router.replace('/login')
       } catch (error) {
         // En caso de error, ir al login por seguridad
-        setIsRedirecting(true)
         router.replace('/login')
+      } finally {
+        setIsRedirecting(false)
       }
     }
 
-    // Ejecutar inmediatamente después del mount
-    const timer = setTimeout(checkAuthAndRedirect, 100)
-
-    return () => clearTimeout(timer)
+    // Ejecutar después de que se monte el componente
+    checkAuthAndRedirect()
   }, [router])
 
+  // Siempre mostrar el mismo contenido inicial para servidor y cliente
   return (
-    <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' minHeight='100vh' gap={3}>
-      <CircularProgress size={60} />
-      <Typography variant='h6' color='text.secondary'>
-        {isRedirecting ? 'Redirigiendo...' : 'Verificando autenticación...'}
-      </Typography>
-    </Box>
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'white'
+      }}
+    >
+      <div
+        style={{
+          width: '24px',
+          height: '24px',
+          border: '2px solid #f3f3f3',
+          borderTop: '2px solid #1976d2',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}
+      />
+    </div>
   )
 }
 

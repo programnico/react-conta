@@ -15,7 +15,7 @@ import type {
 // Initial state
 const initialState: AuthState = {
   isAuthenticated: false,
-  isLoading: false, // Volver a false - el loading lo maneja page.tsx
+  isLoading: false, // Debe iniciar en false
   user: null,
   accessToken: null,
   refreshToken: null,

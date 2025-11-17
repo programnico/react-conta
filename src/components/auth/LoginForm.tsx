@@ -1,8 +1,7 @@
 // components/auth/LoginForm.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
 
 // MUI Imports
 import Card from '@mui/material/Card'
@@ -26,12 +25,7 @@ import {
   clearError,
   resetLoginStep,
   clearLoadingState,
-  selectAuth,
-  selectIsLoading,
-  selectError,
-  selectLoginStep,
-  selectRequiresVerification,
-  selectIsAuthenticated
+  selectAuth
 } from '@/shared/store/authSlice'
 
 // Type Imports
@@ -40,7 +34,6 @@ import type { LoginCredentials, VerificationRequest } from '@/shared/types/auth'
 const LoginForm = () => {
   // Redux hooks
   const dispatch = useAppDispatch()
-  const router = useRouter()
 
   const { isAuthenticated, isLoading, error, loginStep, requiresVerification, verificationToken } =
     useAppSelector(selectAuth)
@@ -64,15 +57,14 @@ const LoginForm = () => {
     }
   }, [isLoading, dispatch])
 
-  // Redirect if authenticated - let LoginPage handle the redirect
+  // Cleanup al desmontar
   useEffect(() => {
-    if (isAuthenticated && loginStep === 'completed') {
-      // Check for redirect parameter or default to dashboard
-      const searchParams = new URLSearchParams(window.location.search)
-      const redirect = searchParams.get('redirect') || '/dashboard'
-      router.push(redirect)
+    return () => {
+      // Limpiar cualquier estado local al desmontar
+      setCredentials({ email: '', password: '' })
+      setVerificationCode('')
     }
-  }, [isAuthenticated, loginStep, router])
+  }, [])
 
   // Handle login form submission
   const handleLogin = async (e: React.FormEvent) => {
@@ -214,7 +206,7 @@ const LoginForm = () => {
   )
 
   return (
-    <div className='flex justify-center items-center min-h-screen p-4'>
+    <div className='flex justify-center items-center p-6' style={{ width: '100%' }}>
       <Card className='w-full max-w-md'>
         <CardContent className='p-6'>
           <div className='text-center mb-6'>
@@ -234,8 +226,17 @@ const LoginForm = () => {
             </Alert>
           )}
 
-          {loginStep === 'credentials' && renderLoginStep()}
-          {loginStep === 'verification' && renderVerificationStep()}
+          {/* Renderizado exclusivo usando switch para prevenir duplicación */}
+          {(() => {
+            switch (loginStep) {
+              case 'credentials':
+                return renderLoginStep()
+              case 'verification':
+                return renderVerificationStep()
+              default:
+                return null
+            }
+          })()}
         </CardContent>
       </Card>
     </div>

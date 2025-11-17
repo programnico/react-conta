@@ -24,8 +24,8 @@ const RootLayout = ({ children }: ChildrenType) => {
   const direction = 'ltr'
 
   return (
-    <html id='__next' dir={direction}>
-      <body className='flex is-full min-bs-full flex-auto flex-col'>
+    <html id='__next' dir={direction} suppressHydrationWarning>
+      <body className='flex is-full min-bs-full flex-auto flex-col' suppressHydrationWarning>
         <Providers direction={direction}>{children}</Providers>
       </body>
     </html>

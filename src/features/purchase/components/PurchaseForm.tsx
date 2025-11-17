@@ -67,7 +67,7 @@ export const PurchaseForm: React.FC<PurchaseFormProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     supplier_id: null as number | null,
-    purchase_date: new Date().toISOString().split('T')[0],
+    purchase_date: '', // Will be set in useEffect to prevent hydration issues
     document_number: '',
     document_type: 'factura' as DocumentType,
     payment_terms: '30 días',
@@ -76,8 +76,22 @@ export const PurchaseForm: React.FC<PurchaseFormProps> = ({
     details: [{ ...initialDetailData }] as PurchaseDetailFormData[]
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [mounted, setMounted] = useState(false)
 
   const isEditing = Boolean(purchase)
+
+  // Set current date after component mounts to prevent hydration issues
+  useEffect(() => {
+    if (!mounted) {
+      setMounted(true)
+      if (!isEditing && !formData.purchase_date) {
+        setFormData(prev => ({
+          ...prev,
+          purchase_date: new Date().toISOString().split('T')[0]
+        }))
+      }
+    }
+  }, [mounted, isEditing, formData.purchase_date])
 
   // Initialize form with purchase data when editing
   useEffect(() => {
@@ -108,7 +122,7 @@ export const PurchaseForm: React.FC<PurchaseFormProps> = ({
       // Reset form for new purchase
       setFormData({
         supplier_id: null,
-        purchase_date: new Date().toISOString().split('T')[0],
+        purchase_date: mounted ? new Date().toISOString().split('T')[0] : '',
         document_number: '',
         document_type: 'factura',
         payment_terms: '30 días',

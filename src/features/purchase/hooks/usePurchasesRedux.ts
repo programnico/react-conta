@@ -13,7 +13,7 @@ import {
   resetPurchases,
   resetLoadingStates
 } from '@/store/slices/purchaseSlice'
-import { fetchSuppliers, clearSupplierError, resetSuppliers } from '@/store/slices/supplierSlice'
+import { fetchSuppliers, clearError as clearSupplierError } from '@/store/slices/supplierSlice'
 import {
   selectPurchases,
   selectPurchaseLoading,
@@ -277,7 +277,7 @@ export const usePurchasesRedux = (options: UsePurchasesOptions = {}): UsePurchas
     suppliers,
     loading: {
       purchases: purchaseLoading.list,
-      suppliers: supplierLoading.list,
+      suppliers: supplierLoading, // supplierLoading es un boolean, no un objeto
       creating: purchaseLoading.create,
       updating: purchaseLoading.update,
       deleting: purchaseLoading.delete,

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false, // Deshabilitar para evitar doble montaje en desarrollo
   basePath: process.env.BASEPATH,
   async rewrites() {
     return [

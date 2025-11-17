@@ -9,7 +9,6 @@ import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter'
 import { PermissionsProvider } from './PermissionsProvider'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 // Tema limpio y profesional
 const theme = createTheme({
@@ -37,12 +36,19 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <AppRouterCacheProvider options={{ enableCssLayer: true }}>
       <ReduxProvider store={store}>
-        <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
+        {persistor ? (
+          <PersistGate loading={null} persistor={persistor}>
+            <ThemeProvider theme={theme}>
+              <CssBaseline />
+              <PermissionsProvider>{children}</PermissionsProvider>
+            </ThemeProvider>
+          </PersistGate>
+        ) : (
           <ThemeProvider theme={theme}>
             <CssBaseline />
             <PermissionsProvider>{children}</PermissionsProvider>
           </ThemeProvider>
-        </PersistGate>
+        )}
       </ReduxProvider>
     </AppRouterCacheProvider>
   )

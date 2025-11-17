@@ -10,7 +10,14 @@ import type { ChildrenType } from '@core/types'
 import { blankLayoutClasses } from './utils/layoutClasses'
 
 const BlankLayout = ({ children }: ChildrenType) => {
-  return <div className={classnames(blankLayoutClasses.root, 'is-full bs-full')}>{children}</div>
+  return (
+    <div
+      className={classnames(blankLayoutClasses.root, 'flex items-center justify-center')}
+      style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}
+    >
+      {children}
+    </div>
+  )
 }
 
 export default BlankLayout

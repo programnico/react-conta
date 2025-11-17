@@ -13,11 +13,17 @@ import { SECURITY } from '@/shared/constants'
 export function SessionWarning() {
   const [showWarning, setShowWarning] = useState(false)
   const [countdown, setCountdown] = useState(0)
+  const [mounted, setMounted] = useState(false)
   const dispatch = useDispatch()
   const { isAuthenticated } = useSelector(selectAuth)
 
+  // Set mounted state to prevent hydration issues
   useEffect(() => {
-    if (!isAuthenticated) {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted || !isAuthenticated) {
       setShowWarning(false)
       return
     }
@@ -76,7 +82,8 @@ export function SessionWarning() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  if (!showWarning || !isAuthenticated) {
+  // Don't render during SSR or before mount to prevent hydration issues
+  if (!mounted || !showWarning || !isAuthenticated) {
     return null
   }
 

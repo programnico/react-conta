@@ -14,27 +14,6 @@ import productReducer from './slices/productSlice'
 import chartOfAccountsReducer from './slices/chartOfAccountsSlice'
 import usersReducer from './slices/usersSlice'
 
-// Persist configuration
-const persistConfig = {
-  key: 'root',
-  version: 2, // Increment version to force migration due to loadingStates addition
-  storage,
-  whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products', 'chartOfAccounts', 'users'], // Persist auth, roles, purchases, suppliers, products, chartOfAccounts and users state
-  migrate: (state: any) => {
-    // Migration for version 2: ensure loadingStates exists in supplier slice
-    if (state && state.suppliers && !state.suppliers.loadingStates) {
-      state.suppliers.loadingStates = {
-        fetching: false,
-        creating: false,
-        updating: false,
-        deleting: false,
-        searching: false
-      }
-    }
-    return state
-  }
-}
-
 // Root reducer with modular structure
 const rootReducer = combineReducers({
   // Global state (always available)
@@ -52,12 +31,40 @@ const rootReducer = combineReducers({
   // administration: administrationReducer
 })
 
-// Persisted reducer
-const persistedReducer = persistReducer(persistConfig, rootReducer)
+// Only use persist on client side
+const isClient = typeof window !== 'undefined'
+
+// Persist configuration
+const persistConfig = {
+  key: 'root',
+  version: 2, // Increment version to force migration due to loadingStates addition
+  storage,
+  whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products', 'chartOfAccounts', 'users'], // Persist auth, roles, purchases, suppliers, products, chartOfAccounts and users state
+  migrate: (state: any) => {
+    return Promise.resolve(
+      (() => {
+        // Migration for version 2: ensure loadingStates exists in supplier slice
+        if (state && state.suppliers && !state.suppliers.loadingStates) {
+          state.suppliers.loadingStates = {
+            fetching: false,
+            creating: false,
+            updating: false,
+            deleting: false,
+            searching: false
+          }
+        }
+        return state
+      })()
+    )
+  }
+}
+
+// Conditional persisted reducer
+const reducer = isClient ? persistReducer(persistConfig, rootReducer) : rootReducer
 
 // Configure store
 export const store = configureStore({
-  reducer: persistedReducer,
+  reducer,
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       serializableCheck: {
@@ -67,8 +74,8 @@ export const store = configureStore({
   devTools: process.env.NODE_ENV !== 'production'
 })
 
-// Create persistor
-export const persistor = persistStore(store)
+// Create persistor only on client side
+export const persistor = isClient ? persistStore(store) : null
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof store.getState>
