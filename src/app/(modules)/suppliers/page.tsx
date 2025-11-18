@@ -31,8 +31,18 @@ const SuppliersPage = () => {
   })
 
   // Redux state
-  const { suppliers, loading, error, clearError, setNeedsReload, isFormOpen, formMode, openForm, closeForm } =
-    useSuppliersRedux()
+  const {
+    suppliers,
+    loading,
+    loadingStates,
+    error,
+    clearError,
+    setNeedsReload,
+    isFormOpen,
+    formMode,
+    openForm,
+    closeForm
+  } = useSuppliersRedux()
 
   // Calculate stats from suppliers
   const stats = React.useMemo(() => {
@@ -82,18 +92,6 @@ const SuppliersPage = () => {
     setSnackbar({ ...snackbar, open: false })
   }
 
-  // Show loading spinner for initial load
-  if (loading && suppliers.length === 0) {
-    return (
-      <Container maxWidth='xl' sx={{ py: 4, textAlign: 'center' }}>
-        <CircularProgress size={60} />
-        <Typography variant='h6' sx={{ mt: 2 }}>
-          Cargando proveedores...
-        </Typography>
-      </Container>
-    )
-  }
-
   return (
     <Container maxWidth='xl' sx={{ py: 4 }}>
       {/* Header */}
@@ -107,10 +105,15 @@ const SuppliersPage = () => {
           </Box>
 
           <Box display='flex' gap={1}>
-            <Button startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
+            <Button startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loadingStates.fetching}>
               Actualizar
             </Button>
-            <Button variant='contained' startIcon={<AddIcon />} onClick={() => handleOpenForm()} disabled={loading}>
+            <Button
+              variant='contained'
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenForm()}
+              disabled={loadingStates.fetching}
+            >
               Nuevo Proveedor
             </Button>
           </Box>

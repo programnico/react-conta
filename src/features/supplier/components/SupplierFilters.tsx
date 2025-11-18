@@ -26,21 +26,24 @@ interface SupplierFiltersProps {
   // No props needed - everything through Redux
 }
 
-// Debounce timeouts fuera del componente para evitar recreación
-let typeTimeout: NodeJS.Timeout
-let classificationTimeout: NodeJS.Timeout
-let statusTimeout: NodeJS.Timeout
+// Single debounce timeout
+let filterTimeout: NodeJS.Timeout
 
 const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = () => {
-  // Redux state y actions - ÚNICA fuente de verdad
+  // Redux state y actions
   const { filters, setFilters, clearFilters, setNeedsReload, clearError } = useSuppliersRedux()
 
-  // Estados locales SOLO para campos de texto (submit manual)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [emailQuery, setEmailQuery] = useState('')
-  const [businessNameQuery, setBusinessNameQuery] = useState('')
+  // Estados locales SOLO para UI responsiva
+  const [localSearch, setLocalSearch] = useState(filters.search || '')
+  const [localEmail, setLocalEmail] = useState(filters.email || '')
+  const [localBusinessName, setLocalBusinessName] = useState(filters.business_name || '')
+  const [localType, setLocalType] = useState(filters.type || '')
+  const [localClassification, setLocalClassification] = useState(filters.classification || '')
+  const [localStatus, setLocalStatus] = useState<string>(
+    filters.is_active === undefined ? '' : filters.is_active ? 'active' : 'inactive'
+  )
 
-  // Referencias para prevenir loops en inicialización
+  // Ref para prevenir updates en mount inicial
   const isInitialMount = useRef(true)
 
   // Dropdowns usan directamente Redux filters (no estado local)
@@ -60,139 +63,149 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = () => {
     { value: 'other', label: 'Otra' }
   ]
 
-  // Inicializar estados locales UNA VEZ
+  // Inicializar estados locales SOLO en mount
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false
-
-      // Inicializar solo campos de texto con valores de Redux
-      setSearchQuery(filters.search || '')
-      setEmailQuery(filters.email || '')
-      setBusinessNameQuery(filters.business_name || '')
+      setLocalSearch(filters.search || '')
+      setLocalEmail(filters.email || '')
+      setLocalBusinessName(filters.business_name || '')
+      setLocalType(filters.type || '')
+      setLocalClassification(filters.classification || '')
+      setLocalStatus(filters.is_active === undefined ? '' : filters.is_active ? 'active' : 'inactive')
     }
-  }, [filters.search, filters.email, filters.business_name]) // === TEXT INPUT HANDLERS (Submit Manual) ===
+  }, [])
 
-  // Search field handler
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value)
-  }
+  // Aplicar filtros a Redux con debounce unificado
+  const applyFilters = useCallback(() => {
+    clearTimeout(filterTimeout)
 
-  const handleSearchSubmit = useCallback(() => {
-    const newFilters = { ...filters }
-    if (searchQuery.trim()) {
-      newFilters.search = searchQuery.trim()
-    } else {
-      delete newFilters.search
-    }
+    filterTimeout = setTimeout(() => {
+      const newFilters: SupplierFilters = {}
 
-    // Solo actualizar filtros - SuppliersTable se encarga de la carga automáticamente
-    setFilters(newFilters)
-    // ❌ NO usar setNeedsReload aquí - causa doble carga
-  }, [searchQuery, filters, setFilters])
-
-  // Email field handler
-  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setEmailQuery(event.target.value)
-  }
-
-  const handleEmailSubmit = useCallback(() => {
-    const newFilters = { ...filters }
-    if (emailQuery.trim()) {
-      newFilters.email = emailQuery.trim()
-    } else {
-      delete newFilters.email
-    }
-    setFilters(newFilters)
-  }, [emailQuery, filters, setFilters])
-
-  // Business name field handler
-  const handleBusinessNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setBusinessNameQuery(event.target.value)
-  }
-
-  const handleBusinessNameSubmit = useCallback(() => {
-    const newFilters = { ...filters }
-    if (businessNameQuery.trim()) {
-      newFilters.business_name = businessNameQuery.trim()
-    } else {
-      delete newFilters.business_name
-    }
-    setFilters(newFilters)
-  }, [businessNameQuery, filters, setFilters])
-
-  // === DROPDOWN HANDLERS (Directo a Redux con debounce) ===
-
-  const handleTypeChange = (value: any) => {
-    clearTimeout(typeTimeout)
-
-    typeTimeout = setTimeout(() => {
-      const newFilters = { ...filters }
-      if (value) {
-        newFilters.type = value as SupplierType
-      } else {
-        delete newFilters.type
+      if (localSearch.trim()) {
+        newFilters.search = localSearch.trim()
       }
-      setFilters(newFilters)
-    }, 300)
-  }
-
-  const handleClassificationChange = (value: any) => {
-    clearTimeout(classificationTimeout)
-
-    classificationTimeout = setTimeout(() => {
-      const newFilters = { ...filters }
-      if (value) {
-        newFilters.classification = value as SupplierClassification
-      } else {
-        delete newFilters.classification
+      if (localEmail.trim()) {
+        newFilters.email = localEmail.trim()
       }
-      setFilters(newFilters)
-    }, 300)
-  }
-
-  const handleStatusChange = (value: any) => {
-    clearTimeout(statusTimeout)
-
-    statusTimeout = setTimeout(() => {
-      const newFilters = { ...filters }
-      if (value === 'active') {
+      if (localBusinessName.trim()) {
+        newFilters.business_name = localBusinessName.trim()
+      }
+      if (localType) {
+        newFilters.type = localType as SupplierType
+      }
+      if (localClassification) {
+        newFilters.classification = localClassification as SupplierClassification
+      }
+      if (localStatus === 'active') {
         newFilters.is_active = true
-      } else if (value === 'inactive') {
+      } else if (localStatus === 'inactive') {
         newFilters.is_active = false
-      } else {
-        delete newFilters.is_active
       }
+
       setFilters(newFilters)
-    }, 300)
-  } // === UTILITY HANDLERS ===
+    }, 700)
+  }, [localSearch, localEmail, localBusinessName, localType, localClassification, localStatus, setFilters])
+
+  // Trigger update cuando cambien los estados locales
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      applyFilters()
+    }
+  }, [localSearch, localEmail, localBusinessName, localType, localClassification, localStatus])
+
+  // === HANDLERS ===
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalSearch(event.target.value)
+  }
+
+  const handleSearchKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      clearTimeout(filterTimeout)
+      applyFilters()
+    }
+  }
+
+  const handleSearchClear = () => {
+    setLocalSearch('')
+  }
+
+  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalEmail(event.target.value)
+  }
+
+  const handleEmailKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      clearTimeout(filterTimeout)
+      applyFilters()
+    }
+  }
+
+  const handleEmailClear = () => {
+    setLocalEmail('')
+  }
+
+  const handleBusinessNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalBusinessName(event.target.value)
+  }
+
+  const handleBusinessNameKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      clearTimeout(filterTimeout)
+      applyFilters()
+    }
+  }
+
+  const handleBusinessNameClear = () => {
+    setLocalBusinessName('')
+  }
+
+  const handleTypeChange = (event: any) => {
+    setLocalType(event.target.value)
+  }
+
+  const handleClassificationChange = (event: any) => {
+    setLocalClassification(event.target.value)
+  }
+
+  const handleStatusChange = (event: any) => {
+    setLocalStatus(event.target.value)
+  }
+
+  // === UTILITY HANDLERS ===
 
   const handleClearFilters = useCallback(() => {
-    // Limpiar filtros Redux
+    clearTimeout(filterTimeout)
+
+    setLocalSearch('')
+    setLocalEmail('')
+    setLocalBusinessName('')
+    setLocalType('')
+    setLocalClassification('')
+    setLocalStatus('')
+
     clearFilters()
-
-    // Limpiar estados locales de texto
-    setSearchQuery('')
-    setEmailQuery('')
-    setBusinessNameQuery('')
-
-    // Limpiar timeouts pendientes
-    clearTimeout(typeTimeout)
-    clearTimeout(classificationTimeout)
-    clearTimeout(statusTimeout)
-
-    // Limpiar error y forzar recarga
     clearError()
     setNeedsReload(true)
   }, [clearFilters, clearError, setNeedsReload])
 
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      clearTimeout(filterTimeout)
+    }
+  }, [])
+
   const getActiveFiltersCount = () => {
     let count = 0
-    if (filters.search) count++
-    if (filters.email) count++
-    if (filters.business_name) count++
-    if (filters.type) count++
-    if (filters.classification) count++
-    if (filters.is_active !== undefined) count++
+    if (localSearch.trim()) count++
+    if (localEmail.trim()) count++
+    if (localBusinessName.trim()) count++
+    if (localType) count++
+    if (localClassification) count++
+    if (localStatus) count++
     return count
   }
 
@@ -226,27 +239,18 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = () => {
             <TextField
               fullWidth
               label='Buscar proveedores'
-              value={searchQuery}
+              value={localSearch}
               onChange={handleSearchChange}
-              onBlur={handleSearchSubmit}
-              onKeyPress={e => e.key === 'Enter' && handleSearchSubmit()}
+              onKeyPress={handleSearchKeyPress}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position='start'>
                     <SearchIcon />
                   </InputAdornment>
                 ),
-                endAdornment: searchQuery && (
+                endAdornment: localSearch && (
                   <InputAdornment position='end'>
-                    <Button
-                      size='small'
-                      onClick={() => {
-                        setSearchQuery('')
-                        const newFilters = { ...filters }
-                        delete newFilters.search
-                        setFilters(newFilters)
-                      }}
-                    >
+                    <Button size='small' onClick={handleSearchClear}>
                       <ClearIcon />
                     </Button>
                   </InputAdornment>
@@ -261,23 +265,14 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = () => {
             <TextField
               fullWidth
               label='Razón Social'
-              value={businessNameQuery}
+              value={localBusinessName}
               onChange={handleBusinessNameChange}
-              onBlur={handleBusinessNameSubmit}
-              onKeyPress={e => e.key === 'Enter' && handleBusinessNameSubmit()}
+              onKeyPress={handleBusinessNameKeyPress}
               placeholder='Filtrar por razón social'
               InputProps={{
-                endAdornment: businessNameQuery && (
+                endAdornment: localBusinessName && (
                   <InputAdornment position='end'>
-                    <Button
-                      size='small'
-                      onClick={() => {
-                        setBusinessNameQuery('')
-                        const newFilters = { ...filters }
-                        delete newFilters.business_name
-                        setFilters(newFilters)
-                      }}
-                    >
+                    <Button size='small' onClick={handleBusinessNameClear}>
                       <ClearIcon />
                     </Button>
                   </InputAdornment>
@@ -290,7 +285,7 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = () => {
           <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <InputLabel>Tipo</InputLabel>
-              <Select value={filters.type || ''} onChange={e => handleTypeChange(e.target.value)} label='Tipo'>
+              <Select value={localType} onChange={handleTypeChange} label='Tipo'>
                 <MenuItem value=''>
                   <em>Todos los tipos</em>
                 </MenuItem>
@@ -307,11 +302,7 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = () => {
           <Grid item xs={12} md={4}>
             <FormControl fullWidth>
               <InputLabel>Clasificación</InputLabel>
-              <Select
-                value={filters.classification || ''}
-                onChange={e => handleClassificationChange(e.target.value)}
-                label='Clasificación'
-              >
+              <Select value={localClassification} onChange={handleClassificationChange} label='Clasificación'>
                 <MenuItem value=''>
                   <em>Todas las clasificaciones</em>
                 </MenuItem>
@@ -328,11 +319,7 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = () => {
           <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <InputLabel>Estado</InputLabel>
-              <Select
-                value={filters.is_active === undefined ? '' : filters.is_active ? 'active' : 'inactive'}
-                onChange={e => handleStatusChange(e.target.value)}
-                label='Estado'
-              >
+              <Select value={localStatus} onChange={handleStatusChange} label='Estado'>
                 <MenuItem value=''>
                   <em>Todos los estados</em>
                 </MenuItem>
@@ -347,23 +334,14 @@ const SupplierFiltersComponent: React.FC<SupplierFiltersProps> = () => {
             <TextField
               fullWidth
               label='Email'
-              value={emailQuery}
+              value={localEmail}
               onChange={handleEmailChange}
-              onBlur={handleEmailSubmit}
-              onKeyPress={e => e.key === 'Enter' && handleEmailSubmit()}
+              onKeyPress={handleEmailKeyPress}
               placeholder='Filtrar por email'
               InputProps={{
-                endAdornment: emailQuery && (
+                endAdornment: localEmail && (
                   <InputAdornment position='end'>
-                    <Button
-                      size='small'
-                      onClick={() => {
-                        setEmailQuery('')
-                        const newFilters = { ...filters }
-                        delete newFilters.email
-                        setFilters(newFilters)
-                      }}
-                    >
+                    <Button size='small' onClick={handleEmailClear}>
                       <ClearIcon />
                     </Button>
                   </InputAdornment>

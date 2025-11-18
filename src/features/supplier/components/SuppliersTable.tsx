@@ -22,7 +22,8 @@ import {
   DialogActions,
   Button,
   Snackbar,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material'
 import { Edit as EditIcon, Delete as DeleteIcon, Business as BusinessIcon } from '@mui/icons-material'
 
@@ -68,11 +69,7 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
   const lastLoadParamsRef = useRef<string>('')
   const loadTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Memoizar filtros para evitar recreaciones de JSON.stringify
-  const memoizedFilters = useMemo(() => filters, [JSON.stringify(filters)])
-
-  // === ÚNICO CONTROLADOR DE CARGA CON DEBOUNCE INTERNO ===
-  // Este useEffect maneja TODA la lógica de carga: inicial, filtros, paginación, needsReload
+  // === ÚNICO CONTROLADOR DE CARGA SIMPLIFICADO ===
   useEffect(() => {
     // Limpiar timeout previo
     if (loadTimeoutRef.current) {
@@ -84,30 +81,30 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
       const loadParams = {
         page: currentPage,
         per_page: rowsPerPage,
-        ...memoizedFilters
+        ...filters
       }
       const paramsString = JSON.stringify(loadParams)
 
-      // Condiciones para cargar
-      const shouldLoad =
-        isInitialMount.current || // Carga inicial
-        needsReload || // Forzar recarga (CRUD operations, limpiar filtros, etc.)
-        lastLoadParamsRef.current !== paramsString // Cambio en filtros/paginación
+      // Solo cargar si los parámetros cambiaron o es carga inicial o needsReload
+      const shouldLoad = isInitialMount.current || needsReload || lastLoadParamsRef.current !== paramsString
 
-      // Prevenir llamada si ya está cargando la misma petición
-      const isAlreadyLoading = loadingStates?.fetching || loadingStates?.searching
-
-      if (shouldLoad && !isAlreadyLoading) {
+      if (shouldLoad) {
         lastLoadParamsRef.current = paramsString
 
-        loadSuppliers(loadParams).finally(() => {
+        // Clear initial mount flag IMMEDIATELY to prevent rapid re-executions
+        if (isInitialMount.current) {
           isInitialMount.current = false
+        }
 
-          // Limpiar needsReload solo si era por esa razón
-          if (needsReload) {
-            setNeedsReload(false)
-          }
-        })
+        loadSuppliers(loadParams)
+          .catch(err => {
+            console.error('Error loading suppliers:', err)
+          })
+          .finally(() => {
+            if (needsReload) {
+              setNeedsReload(false)
+            }
+          })
       }
     }
 
@@ -115,8 +112,8 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
     if (isInitialMount.current || needsReload) {
       executeLoad()
     } else {
-      // Para otros cambios, debounce de 100ms para prevenir bucles
-      loadTimeoutRef.current = setTimeout(executeLoad, 100)
+      // Para cambios en filtros/paginación, debounce de 600ms
+      loadTimeoutRef.current = setTimeout(executeLoad, 600)
     }
 
     // Cleanup
@@ -125,35 +122,30 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
         clearTimeout(loadTimeoutRef.current)
       }
     }
-  }, [
-    currentPage,
-    rowsPerPage,
-    memoizedFilters,
-    needsReload,
-    loadingStates?.fetching,
-    loadingStates?.searching,
-    loadSuppliers,
-    setNeedsReload
-  ])
+  }, [currentPage, rowsPerPage, JSON.stringify(filters), needsReload, loadSuppliers, setNeedsReload])
 
   // === RESET PAGINATION CUANDO CAMBIEN FILTROS ===
   const previousFiltersRef = useRef<string>('')
 
   useEffect(() => {
-    const filtersString = JSON.stringify(memoizedFilters)
+    const currentFiltersString = JSON.stringify(filters)
 
     // Skip inicial mount
     if (isInitialMount.current) {
-      previousFiltersRef.current = filtersString
+      previousFiltersRef.current = currentFiltersString
       return
     }
 
-    // Solo resetear paginación si los filtros realmente cambiaron
-    if (previousFiltersRef.current !== filtersString) {
-      previousFiltersRef.current = filtersString
-      resetPagination() // Esto activará el useEffect principal para cargar página 1
+    // Solo resetear paginación si los filtros realmente cambiaron (no la página)
+    if (previousFiltersRef.current !== currentFiltersString) {
+      previousFiltersRef.current = currentFiltersString
+
+      // Resetear paginación cuando cambien filtros
+      if (currentPage !== 1) {
+        setCurrentPage(1)
+      }
     }
-  }, [memoizedFilters, resetPagination])
+  }, [filters, currentPage, setCurrentPage])
 
   // === AJUSTAR PÁGINA SI ESTÁ FUERA DE RANGO ===
   useEffect(() => {
@@ -268,7 +260,18 @@ const SuppliersTableComponent: React.FC<SuppliersTableProps> = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {suppliers.length === 0 ? (
+            {loadingStates.fetching && suppliers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} align='center'>
+                  <Box py={8} display='flex' flexDirection='column' alignItems='center' gap={2}>
+                    <CircularProgress size={48} />
+                    <Typography variant='body1' color='text.secondary'>
+                      Cargando proveedores...
+                    </Typography>
+                  </Box>
+                </TableCell>
+              </TableRow>
+            ) : suppliers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align='center'>
                   <Box py={4}>
