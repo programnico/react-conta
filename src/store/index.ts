@@ -37,7 +37,7 @@ const isClient = typeof window !== 'undefined'
 // Persist configuration
 const persistConfig = {
   key: 'root',
-  version: 2, // Increment version to force migration due to loadingStates addition
+  version: 3, // Increment version to force migration due to loadingStates addition in products
   storage,
   whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products', 'chartOfAccounts', 'users'], // Persist auth, roles, purchases, suppliers, products, chartOfAccounts and users state
   migrate: (state: any) => {
@@ -53,6 +53,37 @@ const persistConfig = {
             searching: false
           }
         }
+
+        // Migration for version 3: ensure loadingStates exists in product slice
+        if (state && state.products && !state.products.loadingStates) {
+          state.products.loadingStates = {
+            fetching: false,
+            creating: false,
+            updating: false,
+            deleting: false,
+            searching: false
+          }
+
+          // Also ensure pagination is unified
+          if (state.products.meta) {
+            state.products.pagination = {
+              currentPage: state.products.meta.current_page || 1,
+              rowsPerPage: state.products.meta.per_page || 15,
+              totalPages: state.products.meta.last_page || 1,
+              totalRecords: state.products.meta.total || 0,
+              from: state.products.meta.from || 0,
+              to: state.products.meta.to || 0
+            }
+            delete state.products.meta
+          }
+
+          // Ensure form state exists
+          if (!state.products.isFormOpen) {
+            state.products.isFormOpen = false
+            state.products.formMode = 'create'
+          }
+        }
+
         return state
       })()
     )

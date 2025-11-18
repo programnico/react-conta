@@ -1,7 +1,7 @@
 // features/product/components/ProductFilters.tsx
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Card,
   CardContent,
@@ -15,25 +15,35 @@ import {
   Box,
   Chip,
   InputAdornment,
-  Slider,
   Typography
 } from '@mui/material'
 import { Search as SearchIcon, Clear as ClearIcon, FilterList as FilterIcon } from '@mui/icons-material'
 
+import { useProductsRedux } from '../hooks/useProductsRedux'
 import type { ProductFilters } from '../types'
 
 interface ProductFiltersProps {
-  filters: ProductFilters
-  onFiltersChange: (filters: ProductFilters) => void
-  onSearch: (query: string) => void
+  // No props needed - everything through Redux
 }
 
-const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFiltersChange, onSearch }) => {
-  const [localFilters, setLocalFilters] = useState<ProductFilters>(filters)
-  const [searchQuery, setSearchQuery] = useState(filters.search || '')
-  const [priceRange, setPriceRange] = useState<number[]>([filters.min_price || 0, filters.max_price || 1000])
+// Single debounce timeout
+let filterTimeout: NodeJS.Timeout
 
-  // Common categories - you can fetch these from an API
+const ProductFiltersComponent: React.FC<ProductFiltersProps> = () => {
+  // Redux state y actions
+  const { filters, setFilters, clearFilters, setNeedsReload, clearError } = useProductsRedux()
+
+  // Estados locales SOLO para UI responsiva
+  const [localSearch, setLocalSearch] = useState(filters.search || '')
+  const [localCategory, setLocalCategory] = useState(filters.category || '')
+  const [localStatus, setLocalStatus] = useState<string>(
+    filters.is_active === undefined ? '' : filters.is_active ? 'active' : 'inactive'
+  )
+
+  // Ref para prevenir updates en mount inicial
+  const isInitialMount = useRef(true)
+
+  // Common categories
   const categories = [
     'Celular',
     'Laptop',
@@ -47,51 +57,95 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFil
     'Otros'
   ]
 
+  // Inicializar estados locales SOLO en mount
   useEffect(() => {
-    setLocalFilters(filters)
-    setSearchQuery(filters.search || '')
-    setPriceRange([filters.min_price || 0, filters.max_price || 1000])
-  }, [filters])
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      setLocalSearch(filters.search || '')
+      setLocalCategory(filters.category || '')
+      setLocalStatus(filters.is_active === undefined ? '' : filters.is_active ? 'active' : 'inactive')
+    }
+  }, [])
 
-  const handleFilterChange = (key: keyof ProductFilters, value: any) => {
-    const newFilters = { ...localFilters, [key]: value }
-    setLocalFilters(newFilters)
-    onFiltersChange(newFilters)
-  }
+  // Aplicar filtros a Redux con debounce unificado
+  const applyFilters = useCallback(() => {
+    clearTimeout(filterTimeout)
+
+    filterTimeout = setTimeout(() => {
+      const newFilters: ProductFilters = {}
+
+      if (localSearch.trim()) {
+        newFilters.search = localSearch.trim()
+      }
+      if (localCategory) {
+        newFilters.category = localCategory
+      }
+      if (localStatus === 'active') {
+        newFilters.is_active = true
+      } else if (localStatus === 'inactive') {
+        newFilters.is_active = false
+      }
+
+      setFilters(newFilters)
+    }, 700)
+  }, [localSearch, localCategory, localStatus, setFilters])
+
+  // Trigger update cuando cambien los estados locales
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      applyFilters()
+    }
+  }, [localSearch, localCategory, localStatus])
+
+  // === HANDLERS ===
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const query = event.target.value
-    setSearchQuery(query)
-    handleFilterChange('search', query)
+    setLocalSearch(event.target.value)
   }
 
-  const handleSearchSubmit = () => {
-    if (searchQuery.trim()) {
-      onSearch(searchQuery.trim())
+  const handleSearchKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      clearTimeout(filterTimeout)
+      applyFilters()
     }
   }
 
-  // const handlePriceRangeChange = (event: Event, newValue: number | number[]) => {
-  //   const range = newValue as number[]
-  //   setPriceRange(range)
-  //   handleFilterChange('min_price', range[0])
-  //   handleFilterChange('max_price', range[1])
-  // }
-
-  const clearFilters = () => {
-    const emptyFilters: ProductFilters = {}
-    setLocalFilters(emptyFilters)
-    setSearchQuery('')
-    setPriceRange([0, 1000])
-    onFiltersChange(emptyFilters)
+  const handleSearchClear = () => {
+    setLocalSearch('')
   }
+
+  const handleCategoryChange = (event: any) => {
+    setLocalCategory(event.target.value)
+  }
+
+  const handleStatusChange = (event: any) => {
+    setLocalStatus(event.target.value)
+  }
+
+  const handleClearFilters = useCallback(() => {
+    clearTimeout(filterTimeout)
+
+    setLocalSearch('')
+    setLocalCategory('')
+    setLocalStatus('')
+
+    clearFilters()
+    clearError()
+    setNeedsReload(true)
+  }, [clearFilters, clearError, setNeedsReload])
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      clearTimeout(filterTimeout)
+    }
+  }, [])
 
   const getActiveFiltersCount = () => {
     let count = 0
-    if (localFilters.search) count++
-    if (localFilters.category) count++
-    if (localFilters.is_active !== undefined) count++
-    if (localFilters.min_price || localFilters.max_price) count++
+    if (localSearch.trim()) count++
+    if (localCategory) count++
+    if (localStatus) count++
     return count
   }
 
@@ -113,7 +167,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFil
             )}
           </Box>
           {activeFiltersCount > 0 && (
-            <Button startIcon={<ClearIcon />} onClick={clearFilters} size='small' variant='outlined'>
+            <Button startIcon={<ClearIcon />} onClick={handleClearFilters} size='small' variant='outlined'>
               Limpiar
             </Button>
           )}
@@ -125,24 +179,18 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFil
             <TextField
               fullWidth
               label='Buscar productos'
-              value={searchQuery}
+              value={localSearch}
               onChange={handleSearchChange}
-              onKeyPress={e => e.key === 'Enter' && handleSearchSubmit()}
+              onKeyPress={handleSearchKeyPress}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position='start'>
                     <SearchIcon />
                   </InputAdornment>
                 ),
-                endAdornment: searchQuery && (
+                endAdornment: localSearch && (
                   <InputAdornment position='end'>
-                    <Button
-                      size='small'
-                      onClick={() => {
-                        setSearchQuery('')
-                        handleFilterChange('search', '')
-                      }}
-                    >
+                    <Button size='small' onClick={handleSearchClear}>
                       <ClearIcon />
                     </Button>
                   </InputAdornment>
@@ -156,11 +204,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFil
           <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <InputLabel>Categoría</InputLabel>
-              <Select
-                value={localFilters.category || ''}
-                onChange={e => handleFilterChange('category', e.target.value || undefined)}
-                label='Categoría'
-              >
+              <Select value={localCategory} onChange={handleCategoryChange} label='Categoría'>
                 <MenuItem value=''>
                   <em>Todas las categorías</em>
                 </MenuItem>
@@ -177,14 +221,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFil
           <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <InputLabel>Estado</InputLabel>
-              <Select
-                value={localFilters.is_active === undefined ? '' : localFilters.is_active ? 'active' : 'inactive'}
-                onChange={e => {
-                  const value = e.target.value
-                  handleFilterChange('is_active', value === '' ? undefined : value === 'active')
-                }}
-                label='Estado'
-              >
+              <Select value={localStatus} onChange={handleStatusChange} label='Estado'>
                 <MenuItem value=''>
                   <em>Todos los estados</em>
                 </MenuItem>
@@ -193,22 +230,6 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({ filters, onFil
               </Select>
             </FormControl>
           </Grid>
-
-          {/* Price Range */}
-          {/* <Grid item xs={12}>
-            <Typography variant='body2' gutterBottom>
-              Rango de precio: ${priceRange[0]} - ${priceRange[1]}
-            </Typography>
-            <Slider
-              value={priceRange}
-              onChange={handlePriceRangeChange}
-              valueLabelDisplay='auto'
-              min={0}
-              max={5000}
-              step={10}
-              valueLabelFormat={value => `$${value}`}
-            />
-          </Grid> */}
         </Grid>
       </CardContent>
     </Card>

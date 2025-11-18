@@ -17,31 +17,52 @@ import {
   setNeedsReload,
   setCurrentPage,
   setRowsPerPage,
-  resetPagination
+  resetPagination,
+  openForm,
+  closeForm
 } from '@/store/slices/productSlice'
 import type { Product, CreateProductRequest, ProductFilters } from '../types'
 
 export const useProductsRedux = () => {
   const dispatch = useDispatch<AppDispatch>()
-  const { products, loading, error, validationErrors, filters, selectedProduct, needsReload, pagination, meta } =
-    useSelector((state: RootState) => state.products)
+  const state = useSelector((state: RootState) => state.products)
+
+  const {
+    products,
+    loading,
+    error,
+    validationErrors,
+    filters,
+    selectedProduct,
+    needsReload,
+    pagination,
+    isFormOpen,
+    formMode
+  } = state
+
+  // Fallback para loadingStates si no existe en el store actual
+  const loadingStates = state.loadingStates || {
+    fetching: false,
+    creating: false,
+    updating: false,
+    deleting: false,
+    searching: false
+  }
 
   // Action creators
   const loadProducts = useCallback(
     (params?: { [key: string]: any }) => {
-      // Usar la paginación del estado Redux
-      const { currentPage, rowsPerPage } = pagination
-      const { page = currentPage, per_page = rowsPerPage, ...filterParams } = params || {}
+      const { page, per_page, pageSize, ...filterParams } = params || {}
 
       return dispatch(
         fetchProducts({
-          page,
-          pageSize: per_page,
+          page: page || 1,
+          pageSize: per_page || pageSize || 15,
           filters: filterParams as ProductFilters
         })
       )
     },
-    [dispatch, pagination]
+    [dispatch]
   )
 
   const createNewProduct = (productData: CreateProductRequest) => {
@@ -109,17 +130,31 @@ export const useProductsRedux = () => {
     dispatch(resetPagination())
   }, [dispatch])
 
+  // Form actions
+  const openFormAction = useCallback(
+    (mode: 'create' | 'edit', product?: Product) => {
+      dispatch(openForm({ mode, product }))
+    },
+    [dispatch]
+  )
+
+  const closeFormAction = useCallback(() => {
+    dispatch(closeForm())
+  }, [dispatch])
+
   return {
     // State
     products,
     loading,
+    loadingStates,
     error,
     validationErrors,
     filters,
     selectedProduct,
     needsReload,
     pagination,
-    meta,
+    isFormOpen,
+    formMode,
 
     // Actions
     loadProducts,
@@ -136,6 +171,8 @@ export const useProductsRedux = () => {
     setNeedsReload: setNeedsReloadAction,
     setCurrentPage: setCurrentPageAction,
     setRowsPerPage: setRowsPerPageAction,
-    resetPagination: resetPaginationAction
+    resetPagination: resetPaginationAction,
+    openForm: openFormAction,
+    closeForm: closeFormAction
   }
 }
