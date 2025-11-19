@@ -28,72 +28,134 @@ import {
 
 import SmartPagination from '@/components/pagination/SmartPagination'
 import { useChartOfAccountsRedux } from '../hooks/useChartOfAccountsRedux'
-import type { ChartOfAccount, ChartOfAccountFilters } from '../types'
+import type { ChartOfAccount } from '../types'
 import { getAccountTypeLabel } from '../constants/accountTypes'
 
 interface ChartOfAccountsTableProps {
   onEdit: (account: ChartOfAccount) => void
   onDelete: (account: ChartOfAccount) => void
-  filters?: ChartOfAccountFilters
 }
 
-const ChartOfAccountsTableComponent: React.FC<ChartOfAccountsTableProps> = ({ onEdit, onDelete, filters = {} }) => {
+const ChartOfAccountsTableComponent: React.FC<ChartOfAccountsTableProps> = ({ onEdit, onDelete }) => {
   const theme = useTheme()
 
-  // Redux state - Ya no necesitamos estado local
+  // Redux state
   const {
     accounts,
     loading,
-    meta,
+    loadingStates,
     needsReload,
     pagination,
+    filters,
     loadAccounts,
     setNeedsReload,
     setCurrentPage,
     setRowsPerPage,
-    resetPagination,
-    setFilters
+    resetPagination
   } = useChartOfAccountsRedux()
 
-  const { currentPage, rowsPerPage } = pagination
+  const { currentPage, rowsPerPage, totalPages, totalRecords } = pagination
 
-  // Simple approach - update Redux filters on every render and load on mount/pagination change
-  useEffect(() => {
-    setFilters(filters)
-  }, [JSON.stringify(filters), setFilters])
+  // Referencias para controlar efectos
+  const isInitialMount = useRef(true)
+  const lastLoadParamsRef = useRef<string>('')
+  const loadTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Reset pagination when filters change
+  // === ÚNICO CONTROLADOR DE CARGA SIMPLIFICADO ===
   useEffect(() => {
-    resetPagination()
-  }, [JSON.stringify(filters), resetPagination])
-
-  // Load data on mount and when pagination changes
-  useEffect(() => {
-    loadAccounts(filters)
-  }, [currentPage, rowsPerPage, loadAccounts, JSON.stringify(filters)])
-
-  // Handle reload flag
-  useEffect(() => {
-    if (needsReload) {
-      loadAccounts(filters)
-      setNeedsReload(false)
+    // Limpiar timeout previo
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current)
     }
-  }, [needsReload, loadAccounts, setNeedsReload])
 
-  // Ajustar página si está fuera del rango disponible
-  useEffect(() => {
-    if (meta && meta.last_page > 0 && currentPage > meta.last_page) {
-      setCurrentPage(meta.last_page)
+    const executeLoad = () => {
+      // Parámetros actuales para la carga
+      const loadParams = {
+        page: currentPage,
+        per_page: rowsPerPage,
+        ...filters
+      }
+      const paramsString = JSON.stringify(loadParams)
+
+      // Solo cargar si los parámetros cambiaron o es carga inicial o needsReload
+      const shouldLoad = isInitialMount.current || needsReload || lastLoadParamsRef.current !== paramsString
+
+      if (shouldLoad) {
+        lastLoadParamsRef.current = paramsString
+
+        // Clear initial mount flag IMMEDIATELY to prevent rapid re-executions
+        if (isInitialMount.current) {
+          isInitialMount.current = false
+        }
+
+        loadAccounts(loadParams)
+          .catch(err => {
+            console.error('Error loading accounts:', err)
+          })
+          .finally(() => {
+            if (needsReload) {
+              setNeedsReload(false)
+            }
+          })
+      }
     }
-  }, [meta?.last_page, currentPage, setCurrentPage])
 
-  // Pagination handlers
+    // Para carga inicial o needsReload, ejecutar inmediatamente
+    if (isInitialMount.current || needsReload) {
+      executeLoad()
+    } else {
+      // Para cambios en filtros/paginación, debounce de 600ms
+      loadTimeoutRef.current = setTimeout(executeLoad, 600)
+    }
+
+    // Cleanup
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current)
+      }
+    }
+  }, [currentPage, rowsPerPage, JSON.stringify(filters), needsReload, loadAccounts, setNeedsReload])
+
+  // === RESET PAGINATION CUANDO CAMBIEN FILTROS ===
+  const previousFiltersRef = useRef<string>('')
+
+  useEffect(() => {
+    const currentFiltersString = JSON.stringify(filters)
+
+    // Skip inicial mount
+    if (isInitialMount.current) {
+      previousFiltersRef.current = currentFiltersString
+      return
+    }
+
+    // Solo resetear paginación si los filtros realmente cambiaron (no la página)
+    if (previousFiltersRef.current !== currentFiltersString) {
+      previousFiltersRef.current = currentFiltersString
+
+      // Resetear paginación cuando cambien filtros
+      if (currentPage !== 1) {
+        setCurrentPage(1)
+      }
+    }
+  }, [filters, currentPage, setCurrentPage])
+
+  // === AJUSTAR PÁGINA SI ESTÁ FUERA DE RANGO ===
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [totalPages, currentPage, setCurrentPage])
+
+  // === PAGINATION HANDLERS (Solo cambian estado Redux, el useEffect principal carga) ===
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+    // El useEffect principal se encarga de cargar automáticamente
   }
 
   const handlePerPageChange = (perPage: number) => {
-    setRowsPerPage(perPage) // Esto ya resetea a página 1 internamente
+    setRowsPerPage(perPage) // Esto resetea a página 1 internamente
+    // El useEffect principal se encarga de cargar automáticamente
   }
 
   // Ordenar cuentas por jerarquía
@@ -288,12 +350,12 @@ const ChartOfAccountsTableComponent: React.FC<ChartOfAccountsTableProps> = ({ on
         </TableContainer>
 
         {/* Paginador integrado */}
-        {meta && meta.total > 0 && (
+        {totalRecords > 0 && (
           <Box mt={2}>
             <SmartPagination
               currentPage={currentPage}
-              totalPages={meta.last_page}
-              totalItems={meta.total}
+              totalPages={totalPages}
+              totalItems={totalRecords}
               perPage={rowsPerPage}
               onPageChange={handlePageChange}
               onPerPageChange={handlePerPageChange}

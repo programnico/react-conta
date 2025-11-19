@@ -119,39 +119,57 @@ const extractPaginationData = (payload: ChartOfAccountsApiResponse | ChartOfAcco
 interface ChartOfAccountsState {
   accounts: ChartOfAccount[]
   loading: boolean
+  loadingStates: {
+    fetching: boolean
+    creating: boolean
+    updating: boolean
+    deleting: boolean
+    searching: boolean
+  }
   error: string | null
   validationErrors: Record<string, string[]> | null
   filters: ChartOfAccountFilters
   selectedAccount: ChartOfAccount | null
   needsReload: boolean
-  // Estado de paginación local (separado de meta del servidor)
+  // Estado del formulario
+  isFormOpen: boolean
+  formMode: 'create' | 'edit'
+  // Estado de paginación unificado
   pagination: {
     currentPage: number
     rowsPerPage: number
-  }
-  meta: {
-    current_page: number
+    totalPages: number
+    totalRecords: number
     from: number
-    last_page: number
-    per_page: number
     to: number
-    total: number
-  } | null
+  }
 }
 
 const initialState: ChartOfAccountsState = {
   accounts: [],
   loading: false,
+  loadingStates: {
+    fetching: false,
+    creating: false,
+    updating: false,
+    deleting: false,
+    searching: false
+  },
   error: null,
   validationErrors: null,
   filters: {},
   selectedAccount: null,
   needsReload: false,
+  isFormOpen: false,
+  formMode: 'create',
   pagination: {
     currentPage: 1,
-    rowsPerPage: 15
-  },
-  meta: null
+    rowsPerPage: 15,
+    totalPages: 1,
+    totalRecords: 0,
+    from: 0,
+    to: 0
+  }
 }
 
 // Slice
@@ -159,6 +177,31 @@ const chartOfAccountsSlice = createSlice({
   name: 'chartOfAccounts',
   initialState,
   reducers: {
+    // Ensure state has all required properties (for migration from old stored state)
+    initializeState: state => {
+      if (!state.loadingStates) {
+        state.loadingStates = {
+          fetching: false,
+          creating: false,
+          updating: false,
+          deleting: false,
+          searching: false
+        }
+      }
+      if (!state.pagination.totalPages) {
+        state.pagination = {
+          ...state.pagination,
+          totalPages: 1,
+          totalRecords: 0,
+          from: 0,
+          to: 0
+        }
+      }
+      if (state.isFormOpen === undefined) {
+        state.isFormOpen = false
+        state.formMode = 'create'
+      }
+    },
     clearError: state => {
       state.error = null
     },
@@ -190,6 +233,41 @@ const chartOfAccountsSlice = createSlice({
     },
     resetPagination: state => {
       state.pagination.currentPage = 1
+    },
+    updatePaginationMeta: (
+      state,
+      action: PayloadAction<{
+        currentPage: number
+        totalPages: number
+        totalRecords: number
+        from: number
+        to: number
+        rowsPerPage: number
+      }>
+    ) => {
+      const { currentPage, totalPages, totalRecords, from, to, rowsPerPage } = action.payload
+      state.pagination = {
+        currentPage,
+        rowsPerPage,
+        totalPages,
+        totalRecords,
+        from,
+        to
+      }
+    },
+    // Form state actions
+    openForm: (state, action: PayloadAction<{ mode: 'create' | 'edit'; account?: ChartOfAccount }>) => {
+      state.isFormOpen = true
+      state.formMode = action.payload.mode
+      if (action.payload.mode === 'edit' && action.payload.account) {
+        state.selectedAccount = action.payload.account
+      } else {
+        state.selectedAccount = null
+      }
+    },
+    closeForm: state => {
+      state.isFormOpen = false
+      state.selectedAccount = null
     }
   },
   extraReducers: builder => {
@@ -197,50 +275,73 @@ const chartOfAccountsSlice = createSlice({
       // Fetch chart of accounts
       .addCase(fetchChartOfAccounts.pending, state => {
         state.loading = true
+        if (state.loadingStates) {
+          state.loadingStates.fetching = true
+        }
         state.error = null
       })
       .addCase(fetchChartOfAccounts.fulfilled, (state, action) => {
         state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.fetching = false
+        }
         state.needsReload = false // Limpiar flag de recarga
 
         const paginationData = extractPaginationData(action.payload)
 
         if (paginationData && 'data' in paginationData && Array.isArray(paginationData.data)) {
           state.accounts = paginationData.data
-          state.meta = {
-            current_page: paginationData.current_page || 1,
+
+          // Actualizar paginación unificada
+          state.pagination = {
+            currentPage: paginationData.current_page || 1,
+            rowsPerPage: paginationData.per_page || 15,
+            totalPages: paginationData.last_page || 1,
+            totalRecords: paginationData.total || 0,
             from: paginationData.from || 0,
-            last_page: paginationData.last_page || 1,
-            per_page: paginationData.per_page || 15,
-            to: paginationData.to || 0,
-            total: paginationData.total || 0
+            to: paginationData.to || 0
           }
         } else {
           // Fallback
           console.error('Unexpected chart of accounts response structure:', action.payload)
           state.accounts = []
-          state.meta = null
+          state.pagination = {
+            ...state.pagination,
+            totalPages: 1,
+            totalRecords: 0,
+            from: 0,
+            to: 0
+          }
         }
       })
       .addCase(fetchChartOfAccounts.rejected, (state, action) => {
         state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.fetching = false
+        }
         state.error = action.payload as string
       })
       // Create chart of account
       .addCase(createChartOfAccount.pending, state => {
-        state.loading = true
+        if (state.loadingStates) {
+          state.loadingStates.creating = true
+        }
         state.error = null
         state.validationErrors = null
       })
       .addCase(createChartOfAccount.fulfilled, (state, action) => {
-        state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.creating = false
+        }
         state.error = null
         state.validationErrors = null
         // Marcar que necesita recarga
         state.needsReload = true
       })
       .addCase(createChartOfAccount.rejected, (state, action) => {
-        state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.creating = false
+        }
         const payload = action.payload as any
         if (payload && typeof payload === 'object') {
           state.error = payload.message
@@ -252,19 +353,25 @@ const chartOfAccountsSlice = createSlice({
       })
       // Update chart of account
       .addCase(updateChartOfAccount.pending, state => {
-        state.loading = true
+        if (state.loadingStates) {
+          state.loadingStates.updating = true
+        }
         state.error = null
         state.validationErrors = null
       })
       .addCase(updateChartOfAccount.fulfilled, (state, action) => {
-        state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.updating = false
+        }
         state.error = null
         state.validationErrors = null
         // Marcar que necesita recarga para mantener consistencia
         state.needsReload = true
       })
       .addCase(updateChartOfAccount.rejected, (state, action) => {
-        state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.updating = false
+        }
         const payload = action.payload as any
         if (payload && typeof payload === 'object') {
           state.error = payload.message
@@ -276,53 +383,77 @@ const chartOfAccountsSlice = createSlice({
       })
       // Delete chart of account
       .addCase(deleteChartOfAccount.pending, state => {
-        state.loading = true
+        if (state.loadingStates) {
+          state.loadingStates.deleting = true
+        }
         state.error = null
       })
       .addCase(deleteChartOfAccount.fulfilled, (state, action) => {
-        state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.deleting = false
+        }
         // Marcar que necesita recarga
         state.needsReload = true
       })
       .addCase(deleteChartOfAccount.rejected, (state, action) => {
-        state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.deleting = false
+        }
         state.error = action.payload as string
       })
       // Search chart of accounts
       .addCase(searchChartOfAccounts.pending, state => {
         state.loading = true
+        if (state.loadingStates) {
+          state.loadingStates.searching = true
+        }
         state.error = null
       })
       .addCase(searchChartOfAccounts.fulfilled, (state, action) => {
         state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.searching = false
+        }
 
         const paginationData = extractPaginationData(action.payload)
 
         if (paginationData && 'data' in paginationData && Array.isArray(paginationData.data)) {
           state.accounts = paginationData.data
-          state.meta = {
-            current_page: paginationData.current_page || 1,
+
+          // Actualizar paginación unificada
+          state.pagination = {
+            currentPage: paginationData.current_page || 1,
+            rowsPerPage: paginationData.per_page || 15,
+            totalPages: paginationData.last_page || 1,
+            totalRecords: paginationData.total || 0,
             from: paginationData.from || 0,
-            last_page: paginationData.last_page || 1,
-            per_page: paginationData.per_page || 15,
-            to: paginationData.to || 0,
-            total: paginationData.total || 0
+            to: paginationData.to || 0
           }
         } else {
           // Fallback
           console.error('Unexpected search chart of accounts response structure:', action.payload)
           state.accounts = []
-          state.meta = null
+          state.pagination = {
+            ...state.pagination,
+            totalPages: 1,
+            totalRecords: 0,
+            from: 0,
+            to: 0
+          }
         }
       })
       .addCase(searchChartOfAccounts.rejected, (state, action) => {
         state.loading = false
+        if (state.loadingStates) {
+          state.loadingStates.searching = false
+        }
         state.error = action.payload as string
       })
   }
 })
 
 export const {
+  initializeState,
   clearError,
   clearValidationErrors,
   setSelectedAccount,
@@ -332,7 +463,10 @@ export const {
   setNeedsReload,
   setCurrentPage,
   setRowsPerPage,
-  resetPagination
+  resetPagination,
+  updatePaginationMeta,
+  openForm,
+  closeForm
 } = chartOfAccountsSlice.actions
 
 export default chartOfAccountsSlice.reducer
