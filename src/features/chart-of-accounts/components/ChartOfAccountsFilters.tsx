@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Card,
   CardContent,
@@ -14,68 +14,155 @@ import {
   Box,
   Chip,
   Typography,
-  Switch,
-  FormControlLabel
+  InputAdornment
 } from '@mui/material'
 import { Search as SearchIcon, Clear as ClearIcon, FilterList as FilterIcon } from '@mui/icons-material'
 import type { ChartOfAccountFilters, ChartOfAccount } from '../types'
 import { ACCOUNT_TYPES, getAccountTypeLabel } from '../constants/accountTypes'
+import { useChartOfAccountsRedux } from '../hooks/useChartOfAccountsRedux'
 
 interface ChartOfAccountsFiltersProps {
-  filters?: ChartOfAccountFilters
   rootAccounts?: ChartOfAccount[]
-  onFiltersChange?: (filters: ChartOfAccountFilters) => void
-  onClearFilters?: () => void
   showAdvancedFilters?: boolean
 }
 
 const ACCOUNT_LEVELS = [1, 2, 3, 4, 5]
 
-export const ChartOfAccountsFilters = ({
-  filters = {},
-  rootAccounts = [],
-  onFiltersChange,
-  onClearFilters,
-  showAdvancedFilters = true
-}: ChartOfAccountsFiltersProps) => {
-  const [localFilters, setLocalFilters] = useState<ChartOfAccountFilters>(filters)
-  const [searchTerm, setSearchTerm] = useState(filters.search || '')
+// Single debounce timeout
+let filterTimeout: NodeJS.Timeout
 
-  // Sync with Redux state
+export const ChartOfAccountsFilters: React.FC<ChartOfAccountsFiltersProps> = ({
+  rootAccounts = [],
+  showAdvancedFilters = true
+}) => {
+  // Redux state and actions
+  const { filters, setFilters, clearFilters, setNeedsReload, clearError } = useChartOfAccountsRedux()
+
+  // Estados locales SOLO para UI responsiva
+  const [localSearch, setLocalSearch] = useState(filters.search || '')
+  const [localAccountType, setLocalAccountType] = useState(filters.account_type || '')
+  const [localStatus, setLocalStatus] = useState<string>(
+    filters.is_active === undefined ? '' : filters.is_active ? 'active' : 'inactive'
+  )
+  const [localLevel, setLocalLevel] = useState(filters.level?.toString() || '')
+  const [localParentAccount, setLocalParentAccount] = useState(filters.parent_account_id?.toString() || '')
+
+  // Ref para prevenir updates en mount inicial
+  const isInitialMount = useRef(true)
+
+  // Inicializar estados locales SOLO en mount
   useEffect(() => {
-    setLocalFilters(filters)
-    setSearchTerm(filters.search || '')
-  }, [filters])
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      setLocalSearch(filters.search || '')
+      setLocalAccountType(filters.account_type || '')
+      setLocalStatus(filters.is_active === undefined ? '' : filters.is_active ? 'active' : 'inactive')
+      setLocalLevel(filters.level?.toString() || '')
+      setLocalParentAccount(filters.parent_account_id?.toString() || '')
+    }
+  }, [])
+
+  // Aplicar filtros a Redux con debounce unificado
+  const applyFilters = useCallback(() => {
+    clearTimeout(filterTimeout)
+
+    filterTimeout = setTimeout(() => {
+      const newFilters: ChartOfAccountFilters = {}
+
+      if (localSearch.trim()) {
+        newFilters.search = localSearch.trim()
+      }
+      if (localAccountType) {
+        newFilters.account_type = localAccountType
+      }
+      if (localStatus === 'active') {
+        newFilters.is_active = true
+      } else if (localStatus === 'inactive') {
+        newFilters.is_active = false
+      }
+      if (localLevel) {
+        newFilters.level = parseInt(localLevel, 10)
+      }
+      if (localParentAccount) {
+        newFilters.parent_account_id = parseInt(localParentAccount, 10)
+      }
+
+      setFilters(newFilters)
+    }, 700)
+  }, [localSearch, localAccountType, localStatus, localLevel, localParentAccount, setFilters])
+
+  // Trigger update cuando cambien los estados locales
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      applyFilters()
+    }
+  }, [localSearch, localAccountType, localStatus, localLevel, localParentAccount])
+
+  // === HANDLERS ===
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value
-    setSearchTerm(value)
-
-    const newFilters = { ...localFilters, search: value || undefined }
-    setLocalFilters(newFilters)
-    onFiltersChange?.(newFilters)
+    setLocalSearch(event.target.value)
   }
 
-  const handleFilterChange = (key: keyof ChartOfAccountFilters, value: any) => {
-    const newFilters = {
-      ...localFilters,
-      [key]: value === '' ? undefined : value
+  const handleSearchKeyPress = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter') {
+      clearTimeout(filterTimeout)
+      applyFilters()
     }
-    setLocalFilters(newFilters)
-    onFiltersChange?.(newFilters)
   }
 
-  const handleClearFilters = () => {
-    const emptyFilters = {}
-    setLocalFilters(emptyFilters)
-    setSearchTerm('')
-    // Only call onClearFilters, not onFiltersChange to avoid conflicts
-    onClearFilters?.()
+  const handleSearchClear = () => {
+    setLocalSearch('')
   }
 
-  const activeFiltersCount = Object.values(localFilters).filter(
-    value => value !== undefined && value !== null && value !== ''
-  ).length
+  const handleAccountTypeChange = (event: any) => {
+    setLocalAccountType(event.target.value)
+  }
+
+  const handleStatusChange = (event: any) => {
+    setLocalStatus(event.target.value)
+  }
+
+  const handleLevelChange = (event: any) => {
+    setLocalLevel(event.target.value)
+  }
+
+  const handleParentAccountChange = (event: any) => {
+    setLocalParentAccount(event.target.value)
+  }
+
+  const handleClearFilters = useCallback(() => {
+    clearTimeout(filterTimeout)
+
+    setLocalSearch('')
+    setLocalAccountType('')
+    setLocalStatus('')
+    setLocalLevel('')
+    setLocalParentAccount('')
+
+    clearFilters()
+    clearError()
+    setNeedsReload(true)
+  }, [clearFilters, clearError, setNeedsReload])
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      clearTimeout(filterTimeout)
+    }
+  }, [])
+
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (localSearch.trim()) count++
+    if (localAccountType) count++
+    if (localStatus) count++
+    if (localLevel) count++
+    if (localParentAccount) count++
+    return count
+  }
+
+  const activeFiltersCount = getActiveFiltersCount()
 
   return (
     <Card>
@@ -94,8 +181,8 @@ export const ChartOfAccountsFilters = ({
           </Box>
 
           {activeFiltersCount > 0 && (
-            <Button startIcon={<ClearIcon />} onClick={handleClearFilters} variant='outlined' size='small'>
-              Limpiar filtros
+            <Button startIcon={<ClearIcon />} onClick={handleClearFilters} size='small' variant='outlined'>
+              Limpiar
             </Button>
           )}
         </Box>
@@ -105,13 +192,25 @@ export const ChartOfAccountsFilters = ({
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label='Buscar'
-              placeholder='Código, nombre o descripción...'
-              value={searchTerm}
+              label='Buscar cuentas'
+              value={localSearch}
               onChange={handleSearchChange}
+              onKeyPress={handleSearchKeyPress}
               InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                startAdornment: (
+                  <InputAdornment position='start'>
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: localSearch && (
+                  <InputAdornment position='end'>
+                    <Button size='small' onClick={handleSearchClear}>
+                      <ClearIcon />
+                    </Button>
+                  </InputAdornment>
+                )
               }}
+              placeholder='Código, nombre o descripción...'
             />
           </Grid>
 
@@ -119,12 +218,10 @@ export const ChartOfAccountsFilters = ({
           <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <InputLabel>Tipo de Cuenta</InputLabel>
-              <Select
-                value={localFilters.account_type || ''}
-                onChange={e => handleFilterChange('account_type', e.target.value)}
-                label='Tipo de Cuenta'
-              >
-                <MenuItem value=''>Todos los tipos</MenuItem>
+              <Select value={localAccountType} onChange={handleAccountTypeChange} label='Tipo de Cuenta'>
+                <MenuItem value=''>
+                  <em>Todos los tipos</em>
+                </MenuItem>
                 {ACCOUNT_TYPES.map(type => (
                   <MenuItem key={type.value} value={type.value}>
                     {type.label}
@@ -138,16 +235,12 @@ export const ChartOfAccountsFilters = ({
           <Grid item xs={12} md={2}>
             <FormControl fullWidth>
               <InputLabel>Estado</InputLabel>
-              <Select
-                value={localFilters.is_active === undefined ? '' : localFilters.is_active.toString()}
-                onChange={e =>
-                  handleFilterChange('is_active', e.target.value === '' ? undefined : e.target.value === 'true')
-                }
-                label='Estado'
-              >
-                <MenuItem value=''>Todos</MenuItem>
-                <MenuItem value='true'>Activa</MenuItem>
-                <MenuItem value='false'>Inactiva</MenuItem>
+              <Select value={localStatus} onChange={handleStatusChange} label='Estado'>
+                <MenuItem value=''>
+                  <em>Todos los estados</em>
+                </MenuItem>
+                <MenuItem value='active'>Activa</MenuItem>
+                <MenuItem value='inactive'>Inactiva</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -158,12 +251,10 @@ export const ChartOfAccountsFilters = ({
               <Grid item xs={12} md={2}>
                 <FormControl fullWidth>
                   <InputLabel>Nivel</InputLabel>
-                  <Select
-                    value={localFilters.level || ''}
-                    onChange={e => handleFilterChange('level', e.target.value)}
-                    label='Nivel'
-                  >
-                    <MenuItem value=''>Todos los niveles</MenuItem>
+                  <Select value={localLevel} onChange={handleLevelChange} label='Nivel'>
+                    <MenuItem value=''>
+                      <em>Todos los niveles</em>
+                    </MenuItem>
                     {ACCOUNT_LEVELS.map(level => (
                       <MenuItem key={level} value={level}>
                         Nivel {level}
@@ -177,13 +268,11 @@ export const ChartOfAccountsFilters = ({
               <Grid item xs={12} md={3}>
                 <FormControl fullWidth>
                   <InputLabel>Cuenta Padre</InputLabel>
-                  <Select
-                    value={localFilters.parent_account_id || ''}
-                    onChange={e => handleFilterChange('parent_account_id', e.target.value)}
-                    label='Cuenta Padre'
-                  >
-                    <MenuItem value=''>Sin filtro de padre</MenuItem>
-                    <MenuItem value={0}>Solo cuentas raíz</MenuItem>
+                  <Select value={localParentAccount} onChange={handleParentAccountChange} label='Cuenta Padre'>
+                    <MenuItem value=''>
+                      <em>Sin filtro de padre</em>
+                    </MenuItem>
+                    <MenuItem value='0'>Solo cuentas raíz</MenuItem>
                     {rootAccounts.map(account => (
                       <MenuItem key={account.id} value={account.id}>
                         {account.account_code} - {account.account_name}
@@ -195,52 +284,6 @@ export const ChartOfAccountsFilters = ({
             </>
           )}
         </Grid>
-
-        {/* Active Filters Display */}
-        {activeFiltersCount > 0 && (
-          <Box mt={2}>
-            <Typography variant='caption' color='text.secondary' gutterBottom>
-              Filtros activos:
-            </Typography>
-            <Box display='flex' flexWrap='wrap' gap={1} mt={1}>
-              {localFilters.search && (
-                <Chip
-                  label={`Búsqueda: ${localFilters.search}`}
-                  size='small'
-                  onDelete={() => handleFilterChange('search', undefined)}
-                />
-              )}
-              {localFilters.account_type && (
-                <Chip
-                  label={`Tipo: ${getAccountTypeLabel(localFilters.account_type)}`}
-                  size='small'
-                  onDelete={() => handleFilterChange('account_type', undefined)}
-                />
-              )}
-              {localFilters.is_active !== undefined && (
-                <Chip
-                  label={`Estado: ${localFilters.is_active ? 'Activa' : 'Inactiva'}`}
-                  size='small'
-                  onDelete={() => handleFilterChange('is_active', undefined)}
-                />
-              )}
-              {localFilters.level && (
-                <Chip
-                  label={`Nivel: ${localFilters.level}`}
-                  size='small'
-                  onDelete={() => handleFilterChange('level', undefined)}
-                />
-              )}
-              {localFilters.parent_account_id && (
-                <Chip
-                  label='Con cuenta padre específica'
-                  size='small'
-                  onDelete={() => handleFilterChange('parent_account_id', undefined)}
-                />
-              )}
-            </Box>
-          </Box>
-        )}
       </CardContent>
     </Card>
   )

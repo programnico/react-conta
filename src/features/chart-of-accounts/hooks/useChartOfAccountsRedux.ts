@@ -1,6 +1,6 @@
 // features/chart-of-accounts/hooks/useChartOfAccountsRedux.ts
 import { useSelector, useDispatch } from 'react-redux'
-import { useCallback, useRef, useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { RootState, AppDispatch } from '@/store'
 import {
   fetchChartOfAccounts,
@@ -8,6 +8,7 @@ import {
   updateChartOfAccount,
   deleteChartOfAccount,
   searchChartOfAccounts,
+  initializeState,
   clearError,
   clearValidationErrors,
   setSelectedAccount,
@@ -17,46 +18,57 @@ import {
   setNeedsReload,
   setCurrentPage,
   setRowsPerPage,
-  resetPagination
+  resetPagination,
+  openForm,
+  closeForm
 } from '@/store/slices/chartOfAccountsSlice'
 import type { ChartOfAccount, CreateChartOfAccountRequest, ChartOfAccountFilters } from '../types'
 
 export const useChartOfAccountsRedux = () => {
   const dispatch = useDispatch<AppDispatch>()
-  const { accounts, loading, error, validationErrors, filters, selectedAccount, needsReload, pagination, meta } =
-    useSelector((state: RootState) => state.chartOfAccounts)
+  const state = useSelector((state: RootState) => state.chartOfAccounts)
 
-  // Use refs to capture current values without causing re-renders
-  const paginationRef = useRef(pagination)
-  const filtersRef = useRef(filters)
-
-  // Update refs when values change
+  // Initialize state on mount to ensure all properties exist
   useEffect(() => {
-    paginationRef.current = pagination
-  }, [pagination])
+    dispatch(initializeState())
+  }, [dispatch])
 
-  useEffect(() => {
-    filtersRef.current = filters
-  }, [filters])
+  const {
+    accounts,
+    loading,
+    error,
+    validationErrors,
+    filters,
+    selectedAccount,
+    needsReload,
+    pagination,
+    isFormOpen,
+    formMode
+  } = state
 
-  // Action creators - STABLE function to prevent infinite loops
+  // Fallback para loadingStates si no existe en el store actual
+  const loadingStates = state.loadingStates || {
+    fetching: false,
+    creating: false,
+    updating: false,
+    deleting: false,
+    searching: false
+  }
+
+  // Action creators
   const loadAccounts = useCallback(
-    (explicitFilters?: ChartOfAccountFilters) => {
-      // Use current values from refs
-      const { currentPage, rowsPerPage } = paginationRef.current
-
-      // Use explicitly passed filters, or fallback to current Redux filters
-      const filtersToUse = explicitFilters !== undefined ? explicitFilters : filtersRef.current
+    (params?: { [key: string]: any }) => {
+      const { page, per_page, pageSize, ...filterParams } = params || {}
 
       return dispatch(
         fetchChartOfAccounts({
-          page: currentPage,
-          pageSize: rowsPerPage,
-          filters: filtersToUse
+          page: page || 1,
+          pageSize: per_page || pageSize || 15,
+          filters: filterParams as ChartOfAccountFilters
         })
       )
     },
-    [dispatch] // Only dispatch as dependency - access pagination and filters via refs
+    [dispatch]
   )
 
   const createNewAccount = (accountData: CreateChartOfAccountRequest) => {
@@ -124,17 +136,31 @@ export const useChartOfAccountsRedux = () => {
     dispatch(resetPagination())
   }, [dispatch])
 
+  // Form actions
+  const openFormAction = useCallback(
+    (mode: 'create' | 'edit', account?: ChartOfAccount) => {
+      dispatch(openForm({ mode, account }))
+    },
+    [dispatch]
+  )
+
+  const closeFormAction = useCallback(() => {
+    dispatch(closeForm())
+  }, [dispatch])
+
   return {
     // State
     accounts,
     loading,
+    loadingStates,
     error,
     validationErrors,
     filters,
     selectedAccount,
     needsReload,
     pagination,
-    meta,
+    isFormOpen,
+    formMode,
 
     // Actions
     loadAccounts,
@@ -151,6 +177,8 @@ export const useChartOfAccountsRedux = () => {
     setNeedsReload: setNeedsReloadAction,
     setCurrentPage: setCurrentPageAction,
     setRowsPerPage: setRowsPerPageAction,
-    resetPagination: resetPaginationAction
+    resetPagination: resetPaginationAction,
+    openForm: openFormAction,
+    closeForm: closeFormAction
   }
 }
