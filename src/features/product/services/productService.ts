@@ -50,22 +50,29 @@ class ProductService {
    */
   async create(data: CreateProductRequest): Promise<Product> {
     try {
-      const payload = {
-        name: data.name,
-        stock_quantity: data.stock_quantity,
-        selling_price: data.selling_price,
-        cost_price: data.cost_price,
-        description: data.description || '',
-        image_url: data.image_url || '',
-        product_code: data.product_code,
-        category: data.category,
-        is_active: data.is_active ? 1 : 0
+      // Crear FormData manualmente para adjuntar archivos
+      const formData = new FormData()
+      formData.append('name', data.name)
+      formData.append('stock_quantity', String(data.stock_quantity))
+      formData.append('selling_price', String(data.selling_price))
+      formData.append('cost_price', String(data.cost_price))
+      formData.append('description', data.description || '')
+      formData.append('image_url', data.image_url || '')
+      formData.append('product_code', data.product_code)
+      formData.append('category', data.category)
+      formData.append('is_active', data.is_active ? '1' : '0')
+
+      // Adjuntar archivos si existen
+      if (data.attachments && data.attachments.length > 0) {
+        data.attachments.forEach((file: File) => {
+          formData.append('attachments[]', file)
+        })
       }
 
       const response = await apiClient.request<Product>({
         endpoint: API_CONFIG.ENDPOINTS.PRODUCTS.SAVE,
         method: 'POST',
-        data: payload,
+        data: formData,
         useFormData: true
       })
       return response
@@ -79,23 +86,30 @@ class ProductService {
    */
   async update(id: number, data: CreateProductRequest): Promise<Product> {
     try {
-      const payload = {
-        id: id,
-        name: data.name,
-        stock_quantity: data.stock_quantity,
-        selling_price: data.selling_price,
-        cost_price: data.cost_price,
-        description: data.description || '',
-        image_url: data.image_url || '',
-        product_code: data.product_code,
-        category: data.category,
-        is_active: data.is_active ? 1 : 0
+      // Crear FormData manualmente para adjuntar archivos
+      const formData = new FormData()
+      formData.append('id', String(id))
+      formData.append('name', data.name)
+      formData.append('stock_quantity', String(data.stock_quantity))
+      formData.append('selling_price', String(data.selling_price))
+      formData.append('cost_price', String(data.cost_price))
+      formData.append('description', data.description || '')
+      formData.append('image_url', data.image_url || '')
+      formData.append('product_code', data.product_code)
+      formData.append('category', data.category)
+      formData.append('is_active', data.is_active ? '1' : '0')
+
+      // Adjuntar archivos si existen
+      if (data.attachments && data.attachments.length > 0) {
+        data.attachments.forEach((file: File) => {
+          formData.append('attachments[]', file)
+        })
       }
 
       const response = await apiClient.request<Product>({
         endpoint: API_CONFIG.ENDPOINTS.PRODUCTS.SAVE,
         method: 'POST',
-        data: payload,
+        data: formData,
         useFormData: true
       })
       return response

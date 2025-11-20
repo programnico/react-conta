@@ -23,6 +23,7 @@ import {
 } from '@mui/material'
 import { useProductsRedux } from '../hooks/useProductsRedux'
 import { useProductForm } from '../hooks/useProductForm'
+import FileUpload from './FileUpload'
 import type { Product, CreateProductRequest } from '../types'
 
 interface ProductFormProps {
@@ -106,11 +107,12 @@ const ProductFormComponent: React.FC<ProductFormProps> = ({ open, mode, onClose,
     }
   }
 
-  const { formData, errors, isSubmitting, handleInputChange, handleSubmit, resetForm } = useProductForm({
-    initialData,
-    onSubmit: handleFormSubmit,
-    apiValidationErrors: validationErrors
-  })
+  const { formData, errors, isSubmitting, handleInputChange, handleFileChange, handleSubmit, resetForm } =
+    useProductForm({
+      initialData,
+      onSubmit: handleFormSubmit,
+      apiValidationErrors: validationErrors
+    })
 
   const handleClose = () => {
     resetForm()
@@ -275,6 +277,18 @@ const ProductFormComponent: React.FC<ProductFormProps> = ({ open, mode, onClose,
                 helperText={errors.description}
                 disabled={isSubmitting}
                 placeholder='Descripción detallada del producto...'
+              />
+            </Grid>
+
+            {/* File Attachments */}
+            <Grid item xs={12}>
+              <FileUpload
+                files={formData.attachments || []}
+                onChange={handleFileChange}
+                disabled={isSubmitting}
+                error={errors.attachments}
+                maxFiles={5}
+                maxSize={10}
               />
             </Grid>
 

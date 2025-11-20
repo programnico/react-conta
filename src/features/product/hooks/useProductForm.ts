@@ -10,6 +10,7 @@ interface ProductFormErrors {
   cost_price?: string
   description?: string
   image_url?: string
+  attachments?: string
 }
 
 interface UseProductFormProps {
@@ -19,7 +20,7 @@ interface UseProductFormProps {
 }
 
 export const useProductForm = ({ initialData, onSubmit, apiValidationErrors }: UseProductFormProps) => {
-  const [formData, setFormData] = useState<CreateProductRequest>({
+  const [formData, setFormData] = useState<any>({
     name: initialData?.name || '',
     product_code: initialData?.product_code || '',
     category: initialData?.category || '',
@@ -28,7 +29,8 @@ export const useProductForm = ({ initialData, onSubmit, apiValidationErrors }: U
     cost_price: initialData?.cost_price || 0,
     description: initialData?.description || '',
     image_url: initialData?.image_url || '',
-    is_active: initialData?.is_active !== undefined ? initialData.is_active : true
+    is_active: initialData?.is_active !== undefined ? initialData.is_active : true,
+    attachments: []
   })
 
   const [errors, setErrors] = useState<ProductFormErrors>({})
@@ -63,7 +65,8 @@ export const useProductForm = ({ initialData, onSubmit, apiValidationErrors }: U
         cost_price: initialData.cost_price || 0,
         description: initialData.description || '',
         image_url: initialData.image_url || '',
-        is_active: initialData.is_active !== undefined ? initialData.is_active : true
+        is_active: initialData.is_active !== undefined ? initialData.is_active : true,
+        attachments: []
       })
     } else {
       // Reset form cuando no hay initialData (modo create)
@@ -76,7 +79,8 @@ export const useProductForm = ({ initialData, onSubmit, apiValidationErrors }: U
         cost_price: 0,
         description: '',
         image_url: '',
-        is_active: true
+        is_active: true,
+        attachments: []
       })
     }
   }, [
@@ -152,7 +156,7 @@ export const useProductForm = ({ initialData, onSubmit, apiValidationErrors }: U
 
   const handleInputChange = useCallback(
     (name: keyof CreateProductRequest, value: string | number | boolean) => {
-      setFormData(prev => ({
+      setFormData((prev: any) => ({
         ...prev,
         [name]: value
       }))
@@ -162,6 +166,23 @@ export const useProductForm = ({ initialData, onSubmit, apiValidationErrors }: U
         setErrors(prev => ({
           ...prev,
           [name]: undefined
+        }))
+      }
+    },
+    [errors]
+  )
+
+  const handleFileChange = useCallback(
+    (files: File[]) => {
+      setFormData((prev: any) => ({
+        ...prev,
+        attachments: files
+      }))
+      // Limpiar error de archivos
+      if (errors.attachments) {
+        setErrors(prev => ({
+          ...prev,
+          attachments: undefined
         }))
       }
     },
@@ -200,7 +221,8 @@ export const useProductForm = ({ initialData, onSubmit, apiValidationErrors }: U
         cost_price: initialData.cost_price || 0,
         description: initialData.description || '',
         image_url: initialData.image_url || '',
-        is_active: initialData.is_active !== undefined ? initialData.is_active : true
+        is_active: initialData.is_active !== undefined ? initialData.is_active : true,
+        attachments: []
       })
     } else {
       // Modo create: resetear con valores vacíos/por defecto
@@ -213,7 +235,8 @@ export const useProductForm = ({ initialData, onSubmit, apiValidationErrors }: U
         cost_price: 0,
         description: '',
         image_url: '',
-        is_active: true
+        is_active: true,
+        attachments: []
       })
     }
     setErrors({})
@@ -224,6 +247,7 @@ export const useProductForm = ({ initialData, onSubmit, apiValidationErrors }: U
     errors,
     isSubmitting,
     handleInputChange,
+    handleFileChange,
     handleSubmit,
     resetForm,
     setFormData

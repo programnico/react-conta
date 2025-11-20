@@ -26,6 +26,7 @@ export interface CreateProductRequest {
   product_code: string
   category: string
   is_active?: boolean
+  attachments?: File[]
 }
 
 export interface ProductFilters {
