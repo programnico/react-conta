@@ -74,13 +74,30 @@ export const PERMISSIONS = {
     DELETE: 'products:delete',
     MANAGE: 'products:manage'
   },
-  // Agregar después de PRODUCTS en el objeto PERMISSIONS:
   CHART_OF_ACCOUNTS: {
     VIEW: 'chart-of-accounts:view',
     CREATE: 'chart-of-accounts:create',
     EDIT: 'chart-of-accounts:edit',
     DELETE: 'chart-of-accounts:delete',
     MANAGE: 'chart-of-accounts:manage'
+  },
+
+  COMPANIES: {
+    VIEW: 'companies:view',
+    CREATE: 'companies:create',
+    EDIT: 'companies:edit',
+    DELETE: 'companies:delete',
+    MANAGE: 'companies:manage',
+    MANAGE_SETTINGS: 'companies:manage-settings'
+  },
+
+  ESTABLISHMENTS: {
+    VIEW: 'establishments:view',
+    CREATE: 'establishments:create',
+    EDIT: 'establishments:edit',
+    DELETE: 'establishments:delete',
+    MANAGE: 'establishments:manage',
+    MANAGE_SETTINGS: 'establishments:manage-settings'
   }
 } as const
 
@@ -112,7 +129,9 @@ export const ROLES = {
       ...Object.values(PERMISSIONS.PURCHASES),
       ...Object.values(PERMISSIONS.SUPPLIERS),
       ...Object.values(PERMISSIONS.PRODUCTS),
-      ...Object.values(PERMISSIONS.CHART_OF_ACCOUNTS)
+      ...Object.values(PERMISSIONS.CHART_OF_ACCOUNTS),
+      ...Object.values(PERMISSIONS.COMPANIES),
+      ...Object.values(PERMISSIONS.ESTABLISHMENTS)
     ]
   },
   USER: {
@@ -132,7 +151,9 @@ export const ROLES = {
       PERMISSIONS.PRODUCTS.EDIT,
       PERMISSIONS.CHART_OF_ACCOUNTS.VIEW,
       PERMISSIONS.CHART_OF_ACCOUNTS.CREATE,
-      PERMISSIONS.CHART_OF_ACCOUNTS.EDIT
+      PERMISSIONS.CHART_OF_ACCOUNTS.EDIT,
+      PERMISSIONS.COMPANIES.VIEW,
+      PERMISSIONS.ESTABLISHMENTS.VIEW
     ]
   },
   GUEST: {

@@ -24,6 +24,11 @@ import ArticleIcon from '@mui/icons-material/Article'
 import ViewModuleIcon from '@mui/icons-material/ViewModule'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
+import BusinessIcon from '@mui/icons-material/Business'
+import InventoryIcon from '@mui/icons-material/Inventory'
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import ApartmentIcon from '@mui/icons-material/Apartment'
 
 // Config and hooks
 import { MENU_CONFIG, filterMenuByPermissions } from '@/config/menu'
@@ -35,7 +40,12 @@ const iconMap: Record<string, React.ReactNode> = {
   'ri-settings-line': <SettingsIcon />,
   'ri-file-text-line': <ArticleIcon />,
   'ri-layout-card-line': <ViewModuleIcon />,
-  'ri-merge-cells-horizontal': <ViewModuleIcon />
+  'ri-merge-cells-horizontal': <ViewModuleIcon />,
+  'ri-shopping-cart-line': <ShoppingCartIcon />,
+  'ri-building-line': <BusinessIcon />,
+  'ri-box-3-line': <InventoryIcon />,
+  'ri-account-box-line': <AccountBalanceIcon />,
+  'ri-building-4-line': <ApartmentIcon />
 }
 
 const NavigationMenu = () => {

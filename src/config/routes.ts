@@ -25,6 +25,10 @@ export const ROUTES = {
     PRODUCTS: '/products', // Ruta: (modules)/products
     // Chart of Accounts Module
     CHART_OF_ACCOUNTS: '/chart-of-accounts', // Ruta: (modules)/chart-of-accounts
+    // Companies Module
+    COMPANIES: '/companies', // Ruta: (modules)/companies
+    // Establishments Module
+    ESTABLISHMENTS: '/establishments', // Ruta: (modules)/establishments
     // Users Module
     USERS: '/users' // Ruta: (modules)/users
   }
@@ -105,6 +109,22 @@ export const ROUTE_CONFIG = {
     permissions: [PERMISSIONS.CHART_OF_ACCOUNTS.VIEW],
     showInMenu: true,
     icon: 'ri-account-box-line'
+  },
+
+  [ROUTES.PROTECTED.COMPANIES]: {
+    public: false,
+    title: 'Gestión de Empresas',
+    permissions: [PERMISSIONS.COMPANIES.VIEW],
+    showInMenu: true,
+    icon: 'ri-building-4-line'
+  },
+
+  [ROUTES.PROTECTED.ESTABLISHMENTS]: {
+    public: false,
+    title: 'Gestión de Establecimientos',
+    permissions: [PERMISSIONS.ESTABLISHMENTS.VIEW],
+    showInMenu: true,
+    icon: 'ri-store-2-line'
   },
 
   [ROUTES.PROTECTED.USERS]: {

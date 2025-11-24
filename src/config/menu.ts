@@ -110,6 +110,24 @@ export const MENU_CONFIG: MenuItem[] = [
     order: 3.8
   },
   {
+    id: 'companies',
+    label: 'Gestión de Empresas',
+    path: ROUTES.PROTECTED.COMPANIES,
+    icon: 'ri-building-4-line',
+    permissions: [PERMISSIONS.COMPANIES.VIEW],
+    showInMenu: true,
+    order: 3.85
+  },
+  {
+    id: 'establishments',
+    label: 'Gestión de Establecimientos',
+    path: ROUTES.PROTECTED.ESTABLISHMENTS,
+    icon: 'ri-store-2-line',
+    permissions: [PERMISSIONS.ESTABLISHMENTS.VIEW],
+    showInMenu: true,
+    order: 3.87
+  },
+  {
     id: 'users',
     label: 'Gestión de Usuarios',
     path: ROUTES.PROTECTED.USERS,

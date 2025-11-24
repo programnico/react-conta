@@ -121,6 +121,27 @@ export const API_ENDPOINTS = {
     SAVE: '/users/save',
     DELETE: '/users',
     DETAIL: '/users'
+  },
+
+  /**
+   * Company management endpoints
+   */
+  COMPANIES: {
+    LIST: '/companies',
+    LIST_ALL: '/companies/list',
+    SAVE: '/companies/save',
+    DELETE: '/companies',
+    DETAIL: '/companies'
+  },
+
+  /**
+   * Establishment management endpoints
+   */
+  ESTABLISHMENTS: {
+    LIST: '/establishments',
+    SAVE: '/establishments/save',
+    DELETE: '/establishments',
+    DETAIL: '/establishments'
   }
 }
 

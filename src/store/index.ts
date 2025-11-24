@@ -13,6 +13,8 @@ import supplierReducer from './slices/supplierSlice'
 import productReducer from './slices/productSlice'
 import chartOfAccountsReducer from './slices/chartOfAccountsSlice'
 import usersReducer from './slices/usersSlice'
+import companyReducer from './slices/companySlice'
+import establishmentReducer from './slices/establishmentSlice'
 
 // Root reducer with modular structure
 const rootReducer = combineReducers({
@@ -25,7 +27,9 @@ const rootReducer = combineReducers({
   suppliers: supplierReducer,
   products: productReducer,
   chartOfAccounts: chartOfAccountsReducer,
-  users: usersReducer
+  users: usersReducer,
+  companies: companyReducer,
+  establishments: establishmentReducer
   // Future modules:
   // accounting: accountingReducer,
   // administration: administrationReducer
@@ -39,7 +43,17 @@ const persistConfig = {
   key: 'root',
   version: 3, // Increment version to force migration due to loadingStates addition in products
   storage,
-  whitelist: ['auth', 'roles', 'purchases', 'suppliers', 'products', 'chartOfAccounts', 'users'], // Persist auth, roles, purchases, suppliers, products, chartOfAccounts and users state
+  whitelist: [
+    'auth',
+    'roles',
+    'purchases',
+    'suppliers',
+    'products',
+    'chartOfAccounts',
+    'users',
+    'companies',
+    'establishments'
+  ], // Persist auth, roles, purchases, suppliers, products, chartOfAccounts, users, companies and establishments state
   migrate: (state: any) => {
     return Promise.resolve(
       (() => {
@@ -95,7 +109,7 @@ const reducer = isClient ? persistReducer(persistConfig, rootReducer) : rootRedu
 
 // Configure store
 export const store = configureStore({
-  reducer,
+  reducer: reducer as typeof rootReducer,
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       serializableCheck: {

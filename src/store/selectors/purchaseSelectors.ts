@@ -106,9 +106,9 @@ export const selectIsAnyPurchaseLoading = createSelector(
     purchaseLoading.update ||
     purchaseLoading.delete ||
     purchaseLoading.search ||
-    supplierLoading.list ||
-    supplierLoading.create ||
-    supplierLoading.update ||
-    supplierLoading.delete ||
-    supplierLoading.search
+    (typeof supplierLoading === 'object' && supplierLoading.fetching) ||
+    (typeof supplierLoading === 'object' && supplierLoading.creating) ||
+    (typeof supplierLoading === 'object' && supplierLoading.updating) ||
+    (typeof supplierLoading === 'object' && supplierLoading.deleting) ||
+    (typeof supplierLoading === 'object' && supplierLoading.searching)
 )
