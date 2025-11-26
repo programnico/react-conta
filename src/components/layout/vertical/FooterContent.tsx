@@ -29,7 +29,7 @@ const FooterContent = () => {
       </p>
       {!isBreakpointReached && (
         <div className='flex items-center gap-4'>
-          <Link href='https://themeselection.com/license' target='_blank' className='text-primary'>
+          <Link href={process.env.NEXT_PUBLIC_DOCS_URL || '#'} target='_blank' className='text-primary'>
             License
           </Link>
           {/* <Link href='https://themeselection.com' target='_blank' className='text-primary'>

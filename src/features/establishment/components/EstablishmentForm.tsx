@@ -121,6 +121,7 @@ const EstablishmentForm: React.FC<EstablishmentFormProps> = ({ open, establishme
   })
 
   const [selectedWorkingDays, setSelectedWorkingDays] = useState<string[]>([])
+  const [inheritedSettings, setInheritedSettings] = useState(false)
 
   // Load companies
   useEffect(() => {
@@ -227,6 +228,9 @@ const EstablishmentForm: React.FC<EstablishmentFormProps> = ({ open, establishme
       })
       setSelectedWorkingDays([])
     }
+
+    // Resetear flag de configuraciones heredadas
+    setInheritedSettings(false)
   }, [open, establishment])
 
   // Clear errors when opening
@@ -290,6 +294,42 @@ const EstablishmentForm: React.FC<EstablishmentFormProps> = ({ open, establishme
     return companies.find(c => c.id === formData.company_id) || null
   }, [companies, formData.company_id])
 
+  // Heredar configuraciones de la empresa cuando se está creando un nuevo establecimiento
+  useEffect(() => {
+    // Solo aplicar cuando:
+    // 1. No estamos editando un establecimiento existente
+    // 2. Se ha seleccionado una empresa
+    // 3. La empresa tiene configuraciones
+    if (!establishment && selectedCompany && selectedCompany.settings) {
+      const settings = selectedCompany.settings
+
+      setFormData(prev => ({
+        ...prev,
+        // Heredar settings de inventario
+        allow_negative_stock: settings.allow_negative_stock ?? prev.allow_negative_stock,
+        require_serial_numbers: settings.require_serial_numbers ?? prev.require_serial_numbers,
+        stock_valuation_method: settings.stock_valuation_method ?? prev.stock_valuation_method,
+        // Heredar settings de numeración
+        invoice_prefix: settings.invoice_prefix ?? prev.invoice_prefix,
+        receipt_prefix: settings.receipt_prefix ?? prev.receipt_prefix,
+        purchase_prefix: settings.purchase_prefix ?? prev.purchase_prefix,
+        // Heredar settings de documentos
+        allow_partial_payments: settings.allow_partial_payments ?? prev.allow_partial_payments,
+        require_customer_tax_id: settings.require_customer_tax_id ?? prev.require_customer_tax_id,
+        default_payment_terms_days: settings.default_payment_terms_days ?? prev.default_payment_terms_days,
+        // Heredar settings de compras
+        require_purchase_approval: settings.require_purchase_approval ?? prev.require_purchase_approval,
+        purchase_approval_threshold:
+          settings.purchase_approval_threshold?.toString() ?? prev.purchase_approval_threshold,
+        // Heredar settings de reportes
+        default_report_format: settings.default_report_format ?? prev.default_report_format,
+        include_company_logo: settings.include_company_logo ?? prev.include_company_logo
+      }))
+
+      setInheritedSettings(true)
+    }
+  }, [selectedCompany, establishment])
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth='md' fullWidth scroll='paper'>
       <form onSubmit={handleSubmit}>
@@ -306,6 +346,13 @@ const EstablishmentForm: React.FC<EstablishmentFormProps> = ({ open, establishme
           {error && (
             <Alert severity='error' onClose={clearError} sx={{ mb: 2 }}>
               {error}
+            </Alert>
+          )}
+
+          {inheritedSettings && !establishment && (
+            <Alert severity='info' onClose={() => setInheritedSettings(false)} sx={{ mb: 2 }}>
+              Se han heredado las configuraciones de la empresa seleccionada. Puedes modificar estos valores según las
+              necesidades de este establecimiento.
             </Alert>
           )}
 
@@ -328,14 +375,19 @@ const EstablishmentForm: React.FC<EstablishmentFormProps> = ({ open, establishme
                     handleInputChange('company_id', newValue ? newValue.id : 0)
                   }}
                   loading={loadingCompanies}
-                  disabled={isLoading}
+                  disabled={isLoading || !!establishment}
                   renderInput={params => (
                     <TextField
                       {...params}
                       label='Empresa *'
                       required
                       error={!!getFieldError('company_id')}
-                      helperText={getFieldError('company_id')}
+                      helperText={
+                        getFieldError('company_id') ||
+                        (establishment
+                          ? 'No se puede cambiar la empresa de un establecimiento existente'
+                          : 'Selecciona una empresa para heredar sus configuraciones')
+                      }
                     />
                   )}
                 />
